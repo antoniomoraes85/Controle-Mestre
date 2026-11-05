@@ -70,7 +70,7 @@ def overview(c, today=None):
 
 
 class AppHandler(BaseHTTPRequestHandler):
-    server_version='ControleMestreLocal/0.4'
+    server_version='ControleMestreLocal/0.4.1'
     def log_message(self, fmt, *args):
         # Do not log user payloads.
         pass
@@ -102,7 +102,7 @@ class AppHandler(BaseHTTPRequestHandler):
             with_db=connect()
             try: return self._json(200,overview(with_db))
             finally: with_db.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.4','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.4.1','mode':'private-local','multiuser':False})
         if route=='/':route='/index.html'
         static={'/index.html':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8',
                 '/app.js':'text/javascript; charset=utf-8'}
