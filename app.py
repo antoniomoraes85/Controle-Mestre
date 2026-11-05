@@ -7,28 +7,13 @@ import os
 from datetime import date, datetime, timedelta
 
 import streamlit as st
+from ui_theme import STYLES, card, progress, note, empty, priorities, tasks as task_cards
 from core import (ROOT, connect, all_rows, metric_data, subject_metrics, get_days,
                   DAY_CAPS, METHODS, add_session, add_questions, save_topic, save_day,
                   generate_plan, backup_sqlite, export_json, import_excel, import_anki_csv, number)
 
 st.set_page_config(page_title='CONTROLE MESTRE | Central de Estudos',page_icon='🎯',layout='wide',initial_sidebar_state='expanded')
-st.markdown('''<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-html, body, [class*=st-] { font-family:Inter,Arial,sans-serif; }
-.stApp {background: #0B1220; color:#E2E8F0;}
-[data-testid="stSidebar"] {background: #111B30; border-right:1px solid #243249;}
-[data-testid="stMetric"] {background:#142239; border:1px solid #293951; border-radius:16px; padding:17px 20px; min-height:112px;}
-[data-testid="stMetricLabel"] p {font-size:.78rem; color:#AABCD4; font-weight:700;}
-[data-testid="stMetricValue"] {color:#F8FAFC;}
-[data-testid="stVerticalBlockBorderWrapper"] {border-color:#2B3D59;}
-.stButton>button[kind="primary"] {background:#08A88A; color:#041D1A; border-color:#08A88A; font-weight:800;}
-h1,h2,h3 {letter-spacing:-.035em;}
-h1 {font-size:2.35rem !important; margin-bottom:.1em;}
-h2 {font-size:1.3rem !important;}
-.cm-sub {color:#9CB0CB;font-size:1rem;margin-bottom:1rem;}
-.cm-chip {padding:.27em .65em;border:1px solid #315477;background:#15384D;border-radius:999px;color:#8BE4D3;font-size:.73rem;letter-spacing:.08em;font-weight:800;}
-.cm-micro {color:#91A8C7;font-size:.82rem;}
-</style>''',unsafe_allow_html=True)
+st.markdown(STYLES, unsafe_allow_html=True)
 
 if 'db_connection' not in st.session_state:
     st.session_state.db_connection=connect()
@@ -41,68 +26,124 @@ def topics_for(subject):return [x['topic'] for x in all_rows(c,'SELECT DISTINCT 
 def today_ws(day=None):
     day=day or date.today();return day-timedelta(days=day.weekday())
 def banner(title,subtitle):
-    st.markdown('<span class="cm-chip">CONTROLE MESTRE · EDIÇÃO PESSOAL</span>',unsafe_allow_html=True)
-    st.title(title);st.markdown(f'<div class="cm-sub">{subtitle}</div>',unsafe_allow_html=True)
-def plot(values,mark,x,y,color='#18C7A5',height=260,title=None):
-    if not values: st.info('Sem dados registrados para este gráfico.');return
-    enc={'x':{'field':x,'type':'ordinal','axis':{'labelColor':'#BFD1E4','title':None}},
-         'y':{'field':y,'type':'quantitative','axis':{'labelColor':'#BFD1E4','title':None}},
-         'tooltip':[{'field':x,'type':'nominal'},{'field':y,'type':'quantitative'}]}
+    st.markdown('<span class="cm-eyebrow">CONTROLE MESTRE · SEFAZ-RS</span>',unsafe_allow_html=True)
+    st.title(title)
+    st.markdown(f'<div class="cm-sub">{subtitle}</div>',unsafe_allow_html=True)
+
+def plot(values,mark,x,y,color='#24D6A5',height=240,title=None):
+    if not values:
+        st.markdown(empty('Sem dados ainda','Registre sua primeira atividade para visualizar a evolução.'),unsafe_allow_html=True)
+        return
+    enc={
+        'x':{'field':x,'type':'ordinal','axis':{'labelColor':'#BED0E6','labelAngle':0,'title':None,'labelFontSize':11,'labelLimit':110,'tickSize':0,'labelPadding':10}},
+        'y':{'field':y,'type':'quantitative','scale':{'zero':True},'axis':{'labelColor':'#B9CCE4','title':None,'labelFontSize':11,'tickCount':4,'format':'.1f'}},
+        'tooltip':[{'field':x,'type':'nominal'},{'field':y,'type':'quantitative','format':'.2f'}]
+    }
     spec={'mark':{'type':mark,'color':color,'cornerRadiusTopLeft':4,'cornerRadiusTopRight':4},'encoding':enc,
           'data':{'values':values},'height':height,'background':'transparent',
-          'config':{'view':{'stroke':None},'axis':{'gridColor':'#22344B','domainColor':'#31445D'}}}
+          'padding':{'left':6,'right':12,'top':6,'bottom':6},
+          'config':{'view':{'stroke':None},'axis':{'gridColor':'#26364F','domainColor':'#2E4762'}}}
     st.vega_lite_chart(spec,use_container_width=True)
 
-st.sidebar.markdown('## ◈ CONTROLE MESTRE')
-st.sidebar.caption('Planejar • Executar • Medir • Melhorar')
+def weekly_activity(c, today=None):
+    """Quatro blocos completos de sete dias até a data de referência."""
+    today=today or date.today()
+    first=today-timedelta(days=27)
+    rows=all_rows(c,'SELECT day,SUM(minutes) mins FROM sessions WHERE day BETWEEN ? AND ? GROUP BY day',
+                  (first.isoformat(),today.isoformat()))
+    if not rows:
+        return []
+    daily={row['day']:float(row['mins'])/60 for row in rows}
+    out=[]
+    for i in range(4):
+        start=first+timedelta(days=i*7)
+        end=start+timedelta(days=6)
+        hours=sum(daily.get((start+timedelta(days=j)).isoformat(),0) for j in range(7))
+        out.append({'semana':f'{start:%d/%m} – {end:%d/%m}','horas':round(hours,2)})
+    return out
+
+st.sidebar.markdown('''<div class="cm-brand"><div class="cm-logo"><div class="cm-logo-mark">CM</div><div class="cm-logo-title">CONTROLE<br>MESTRE</div></div><small>SEU CENTRO DE ESTUDOS</small></div>''', unsafe_allow_html=True)
 sections=['Visão geral','Estudar hoje','Planejamento semanal','Ciclos de estudos','Disciplinas e assuntos','Questões e erros','Revisões e Anki','Importação','Configurações']
-page=st.sidebar.radio('Navegação',sections,label_visibility='collapsed')
+page=st.sidebar.radio('Navegação',sections,label_visibility='collapsed',key='navigation')
 st.sidebar.divider()
-st.sidebar.caption('DADOS PRIVADOS · SALVOS NESTE COMPUTADOR')
-st.sidebar.caption('SEFAZ-RS · Plano provisório, ajustável ao próximo edital.')
+st.sidebar.caption('SEFAZ-RS · PLANEJAMENTO PESSOAL')
+st.sidebar.caption('Dados armazenados localmente. Sem assinatura.')
 
 if page=='Visão geral':
-    banner('Painel executivo','Prioridades, produtividade e lacunas reais — sem métricas inventadas.')
-    m=metric_data(c);rank=subject_metrics(c)
-    a,b,d,e=st.columns(4)
-    a.metric('Horas líquidas · semana',rs(m['weekly_minutes']/60)+' h',delta=f'{int(m["weekly_minutes"])} / {m["weekly_target"]} min',delta_color='off')
-    b.metric('Aderência semanal',perc(m['adherence']))
-    d.metric('Questões · semana',str(m['week_questions']['total']),delta=f'{m["week_questions"]["correct"]} acertos',delta_color='off')
-    e.metric('Rendimento · 30 dias',perc(m['last30_questions']['rate']))
-    a,b,d,e=st.columns(4)
-    a.metric('Horas líquidas · mês',rs(m['monthly_minutes']/60)+' h')
-    b.metric('Questões · mês',str(m['month_questions']['total']))
-    d.metric('Revisões vencidas',str(m['overdue_reviews']))
-    e.metric('Cartões Anki · semana',str(m['anki_cards']))
-    if rank:
-        leader=rank[0]
-        st.info('**Recomendação de prioridade:** ' + leader['disciplina'] + '. ' +
-                (f'Resolver questões e reforçar os erros: taxa atual de {perc(leader["rendimento"])}.' if leader['questoes']>=15 and leader['rendimento'] is not None else 'Iniciar diagnóstico com questões e registrar desempenho, pois ainda faltam evidências suficientes.'))
-    st.divider()
-    col1,col2=st.columns([1.4,1])
-    with col1:
-        st.subheader('Atividade das últimas 4 semanas')
-        first=date.today()-timedelta(days=27)
-        act={x['day']:round(x['mins']/60,2) for x in all_rows(c,'SELECT day,SUM(minutes) mins FROM sessions WHERE day>=? GROUP BY day',(first.isoformat(),))}
-        vals=[{'dia':(first+timedelta(days=i)).strftime('%d/%m'),'horas':act.get((first+timedelta(days=i)).isoformat(),0)} for i in range(28)]
-        plot(vals,'bar','dia','horas')
-        st.caption('Tempo do Anki aparece separado e não é somado às horas líquidas para evitar contagem dupla.')
-    with col2:
-        st.subheader('Prioridades calculadas')
-        st.dataframe([{'Disciplina':r['disciplina'],'Necessidade':r['prioridade'],
-                      'Acertos':perc(r['rendimento']),'Questões':r['questoes']} for r in rank[:8]],
-                     hide_index=True,use_container_width=True)
-        st.caption('Ordenação por peso, desempenho, falta de estudo, progresso e revisões vencidas.')
-    col1,col2=st.columns([1,1])
-    with col1:
-        st.subheader('Horas por disciplina')
-        plot([{'disciplina':r['disciplina'][:24],'horas':r['horas']} for r in rank if r['horas']>0][:10],
-             'bar','disciplina','horas',height=245)
-    with col2:
-        st.subheader('Próximas atividades')
-        tasks=all_rows(c,"SELECT day,subject,topic,method,target_minutes FROM plans WHERE status='Pendente' AND day>=? ORDER BY day,priority DESC LIMIT 7",(date.today().isoformat(),))
-        if tasks:st.dataframe(tasks,hide_index=True,use_container_width=True)
-        else:st.info('Acesse Planejamento semanal e gere seu primeiro plano.')
+    banner('Painel executivo','Seu progresso, o que precisa de atenção e a próxima ação de estudo.')
+    m=metric_data(c)
+    rank=subject_metrics(c)
+    weekly_target=m['weekly_target']
+    has_records=bool(m['weekly_minutes'] or m['monthly_minutes'] or
+                     m['week_questions']['total'] or m['month_questions']['total'])
+
+    st.markdown('<div class="cm-section">Indicadores da preparação</div>',unsafe_allow_html=True)
+    a,b,d,e=st.columns(4,gap='small')
+    a.markdown(card('Horas líquidas · semana',rs(m['weekly_minutes']/60)+' h',
+                    f'Meta: {rs(weekly_target/60)} horas','green'),unsafe_allow_html=True)
+    b.markdown(card('Meta semanal cumprida',perc(m['adherence']),
+                    'Tempo realizado ÷ meta prevista','blue'),unsafe_allow_html=True)
+    d.markdown(card('Questões · semana',str(m['week_questions']['total']),
+                    f'{m["week_questions"]["correct"]} acertos registrados','blue'),unsafe_allow_html=True)
+    e.markdown(card('Precisão · 30 dias',perc(m['last30_questions']['rate']),
+                    'Sem dados' if m['last30_questions']['rate'] is None else 'Acertos ÷ questões','green'),unsafe_allow_html=True)
+    st.markdown('<div style="height:8px"></div>',unsafe_allow_html=True)
+    a,b,d,e=st.columns(4,gap='small')
+    a.markdown(card('Horas líquidas · mês',rs(m['monthly_minutes']/60)+' h',
+                    'Sessões efetivamente registradas','neutral'),unsafe_allow_html=True)
+    b.markdown(card('Questões · mês',str(m['month_questions']['total']),
+                    'Questões respondidas','neutral'),unsafe_allow_html=True)
+    d.markdown(card('Revisões vencidas',str(m['overdue_reviews']),
+                    'Pendências anteriores a hoje','amber' if m['overdue_reviews'] else 'neutral'),unsafe_allow_html=True)
+    e.markdown(card('Flashcards Anki · semana',str(m['anki_cards']),
+                    'Registros do Anki importados','neutral'),unsafe_allow_html=True)
+    st.markdown('<div style="height:12px"></div>',unsafe_allow_html=True)
+    st.markdown(progress('Progresso da meta semanal',m['weekly_minutes'],weekly_target),unsafe_allow_html=True)
+
+    if not has_records:
+        st.markdown(note('COMECE POR AQUI','Seu painel está pronto para receber dados',
+            'Defina os dias de plantão, gere seu planejamento e registre a primeira sessão. A pontuação inicial é provisória até existirem questões e estudos registrados.'),
+            unsafe_allow_html=True)
+        if st.button('Criar meu primeiro planejamento →',type='primary',on_click=lambda:st.session_state.__setitem__('navigation','Planejamento semanal')):
+            pass
+    elif rank:
+        lead=rank[0]
+        explanation=(f'Rendimento atual: {perc(lead["rendimento"])} em {lead["questoes"]} questões. Priorize erros e revisões.'
+                     if lead['questoes']>=15 and lead['rendimento'] is not None else
+                     'Prioridade calculada com poucos registros; resolva questões para calibrar a recomendação.')
+        st.markdown(note('RECOMENDAÇÃO ATUAL',lead['disciplina'],explanation),unsafe_allow_html=True)
+
+    left,right=st.columns([1.35,1],gap='large')
+    with left:
+        st.markdown('<div class="cm-section">Evolução das últimas 4 semanas</div>',unsafe_allow_html=True)
+        values=weekly_activity(c)
+        if values:
+            plot(values,'bar','semana','horas',height=240)
+        else:
+            st.markdown(empty('Nenhuma sessão registrada nesse período',
+                    'Quando você começar a estudar, suas horas líquidas aparecerão aqui, agrupadas por semana.'),
+                    unsafe_allow_html=True)
+        st.caption('Tempo importado do Anki é exibido à parte para evitar contagem dupla.')
+    with right:
+        st.markdown('<div class="cm-section">Prioridades estratégicas</div>',unsafe_allow_html=True)
+        st.markdown(priorities(rank,perc),unsafe_allow_html=True)
+        st.caption('Pontuação relativa: peso, conteúdo pendente, rendimento e revisões. Sem dados suficientes, classificação provisória.')
+
+    left,right=st.columns([1.35,1],gap='large')
+    with left:
+        st.markdown('<div class="cm-section">Horas por disciplina</div>',unsafe_allow_html=True)
+        studied=[r for r in rank if r['horas']>0]
+        if studied:
+            studied=sorted(studied,key=lambda r:-r['horas'])[:6]
+            plot([{'disciplina':r['disciplina'][:27],'horas':r['horas']} for r in studied],
+                 'bar','disciplina','horas',height=245)
+        else:
+            st.markdown(empty('Ainda não há horas por disciplina',
+                       'Registre as sessões pelo cronômetro ou importe sua planilha de estudos.'),unsafe_allow_html=True)
+    with right:
+        st.markdown('<div class="cm-section">Próximas atividades</div>',unsafe_allow_html=True)
+        next_tasks=all_rows(c,"SELECT day,subject,topic,method,target_minutes FROM plans WHERE status='Pendente' AND day>=? ORDER BY day,priority DESC LIMIT 5",(date.today().isoformat(),))
+        st.markdown(task_cards(next_tasks),unsafe_allow_html=True)
 
 elif page=='Estudar hoje':
     banner('Estudar hoje','Execute as metas e registre resultados com o menor atrito possível.')
@@ -358,4 +399,4 @@ elif page=='Configurações':
     st.caption('Esta pontuação é heurística ajustável, não uma probabilidade de aprovação.')
 
 st.divider()
-st.caption('CONTROLE MESTRE · MVP local v0.1 · Dados no seu computador · Não reproduz código, identidade visual ou conteúdo proprietário de terceiros.')
+st.caption('CONTROLE MESTRE · v0.2 visual · Dados privados no seu computador · Preparação SEFAZ-RS')
