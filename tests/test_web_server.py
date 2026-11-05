@@ -69,6 +69,34 @@ class WebServerTests(unittest.TestCase):
         r=Request(self.base+'/api/setting',data=b'{"weekly_target_minutes":1800}',headers={'Content-Type':'application/json','Origin':'https://attacker.invalid'})
         with self.assertRaises(HTTPError) as cm:urlopen(r,timeout=5)
         self.assertEqual(cm.exception.code,403)
+    def test_new_component_files(self):
+        req=Request(self.base+'/modules/assessments.js')
+        with urlopen(req,timeout=5) as r:
+            self.assertEqual(r.status,200)
+            self.assertIn(b'assessmentsView',r.read())
+        self.assertEqual(self.call('/modules/..%2Fcore.py')[0],404)
+    def test_assessment_api_and_rate_isolated(self):
+        payload={'day':'2026-11-05','title':'Simulado local','total':30,
+                 'correct':21,'wrong':7,'blank':2,'guesses':5}
+        code,obj=self.call('/api/assessment/mock',payload)
+        self.assertEqual(code,201)
+        state=self.call('/api/overview')[1]
+        self.assertEqual(state['assessments']['mock_rate'],.7)
+        self.assertEqual(state['metrics']['week_questions']['total'],0)
+        code,_=self.call('/api/assessment/mock',dict(payload,blank=5))
+        self.assertEqual(code,400)
+        code,_=self.call('/api/assessment/essay',{'day':'2026-11-05','topic':'Prova discursiva','grade':8,'maximum_grade':10})
+        self.assertEqual(code,201)
+        state=self.call('/api/overview')[1]
+        self.assertEqual(state['assessments']['essay_count'],1)
+        code,_=self.call('/api/assessment/delete',{'kind':'mock_exams','id':obj['id']})
+        self.assertEqual(code,200)
+        self.assertEqual(self.call('/api/overview')[1]['assessments']['mock_count'],0)
+    def test_cross_site_fetch_blocked(self):
+        req=Request(self.base+'/api/assessment/mock',data=b'{}',headers={
+            'Content-Type':'application/json','Origin':self.base,'Sec-Fetch-Site':'cross-site'})
+        with self.assertRaises(HTTPError) as cm:urlopen(req,timeout=5)
+        self.assertEqual(cm.exception.code,403)
     def test_no_path_traversal(self):
         self.assertEqual(self.call('/some/../secrets')[0],404)
 
