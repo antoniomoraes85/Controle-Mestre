@@ -13,6 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
 from core import (ROOT, connect, all_rows, metric_data, subject_metrics,
                   get_days, save_day, generate_plan, add_session, add_questions,
                   DAY_CAPS, METHODS)
@@ -57,7 +58,7 @@ def overview(c, today=None):
          ROUND(AVG(progress),1) AS pct FROM topics GROUP BY subject''')
     return dict(
         today=today.isoformat(), week_start=start_iso, week_end=end_iso,
-        metrics=metrics, ranking=ranked, plans=plans, done=done,
+        metrics=metrics, ranking=ranked, plans=plans, done=done, assessments=assessment_summary(c),
         weeks=weeks, sessions=sessions, question_history=qq, reviews=revisions,
         anki=anki, topic_progress=progress,
         cycles=all_rows(c, 'SELECT subject,cycle,ROUND(SUM(minutes),0) AS minutes FROM sessions WHERE cycle IS NOT NULL GROUP BY subject,cycle ORDER BY cycle,subject'),
@@ -69,7 +70,7 @@ def overview(c, today=None):
 
 
 class AppHandler(BaseHTTPRequestHandler):
-    server_version='ControleMestreLocal/0.3'
+    server_version='ControleMestreLocal/0.4'
     def log_message(self, fmt, *args):
         # Do not log user payloads.
         pass
@@ -101,12 +102,16 @@ class AppHandler(BaseHTTPRequestHandler):
             with_db=connect()
             try: return self._json(200,overview(with_db))
             finally: with_db.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.3'})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.4','mode':'private-local','multiuser':False})
         if route=='/':route='/index.html'
         static={'/index.html':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8',
                 '/app.js':'text/javascript; charset=utf-8'}
+        # Só módulos existentes em diretório explícito (sem traversal ou leitura arbitrária).
+        if route.startswith('/modules/') and re.fullmatch(r'/modules/[a-z_]+\.js',route):
+            static[route]='text/javascript; charset=utf-8'
         if route not in static:return self._json(404,{'error':'Arquivo não encontrado'})
         path=WEB / route[1:]
+        if not path.is_file():return self._json(404,{'error':'Arquivo não encontrado'})
         return self._reply(200,path.read_bytes(),static[route])
 
     def do_POST(self):
@@ -119,12 +124,22 @@ class AppHandler(BaseHTTPRequestHandler):
             return self._json(415,{'error':'Envie JSON'})
         length=int(self.headers.get('Content-Length','0') or 0)
         if not 0<length<=65536:return self._json(413,{'error':'Requisição inválida'})
+        if self.headers.get('Sec-Fetch-Site','same-origin') not in ('same-origin','none'):return self._json(403,{'error':'Acesso de outro site bloqueado'})
         try: args=json.loads(self.rfile.read(length).decode('utf-8'))
         except (ValueError,UnicodeDecodeError):return self._json(400,{'error':'JSON inválido'})
         if not isinstance(args,dict):return self._json(400,{'error':'Objeto JSON obrigatório'})
         route=urlsplit(self.path).path
         c=connect()
         try:
+            if route=='/api/assessment/mock':
+                return self._json(201,{'ok':True,'id':insert_mock(c,args)})
+            if route=='/api/assessment/essay':
+                return self._json(201,{'ok':True,'id':insert_essay(c,args)})
+            if route=='/api/assessment/delete':
+                kind=str(args['kind']);ident=args['id']
+                if not isinstance(ident,int) or isinstance(ident,bool):raise ValueError('ID inválido')
+                delete_assessment(c,kind,ident)
+                return self._json(200,{'ok':True})
             if route=='/api/plan/generate':
                 ws=date.fromisoformat(args.get('week') or current_week().isoformat())
                 return self._json(200,generate_plan(c,ws))
