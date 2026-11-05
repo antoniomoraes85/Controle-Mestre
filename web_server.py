@@ -3,6 +3,7 @@ Sem serviços externos. Escuta somente 127.0.0.1; não é adequado para hospedag
 """
 from __future__ import annotations
 import json
+import webbrowser
 import mimetypes
 import os
 import re
@@ -183,7 +184,9 @@ class AppHandler(BaseHTTPRequestHandler):
 def serve(host='127.0.0.1',port=8765):
     db=connect();db.close()
     srv=ThreadingHTTPServer((host,port),AppHandler)
-    print(f'CONTROLE MESTRE — Painel premium local: http://{host}:{port}')
+    url=f'http://{host}:{port}'
+    print(f'CONTROLE MESTRE — Painel premium local: {url}')
+    threading.Timer(0.8,lambda: webbrowser.open(url)).start()
     try:srv.serve_forever()
     except KeyboardInterrupt:pass
     finally:srv.server_close()
