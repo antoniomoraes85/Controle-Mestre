@@ -37,3 +37,13 @@ Esta versão **não deve ser publicada na internet para usuários externos**: ai
 Consulte [PLANO_DE_EVOLUCAO_E_NEGOCIO.md](PLANO_DE_EVOLUCAO_E_NEGOCIO.md) para a estratégia de evolução e lançamento.
 
 © Titular do projeto — todos os direitos reservados, salvo licença expressa futura.
+
+## Manual original CM 1.0 — roteiro de reconstrução
+
+O manual histórico de 53 páginas, fornecido pelo proprietário, documenta os dois modos de planejamento (**semanal** e **por ciclos de 30 minutos**), quadro geral, tarefas, catálogo de assuntos, questões, revisões, simulados e redações. Os comportamentos estão discriminados em:
+
+- [Referência funcional histórica CM 1.0](docs/REFERENCIA_HISTORICA_CONTROLE_MESTRE_V1.md)
+- [Matriz de paridade e backlog priorizado](docs/MATRIZ_DE_PARIDADE_E_BACKLOG.md)
+- [ADR-001: estratégia de arquitetura e dados](docs/ADR-001-ESTRATEGIA_DE_EVOLUCAO.md)
+
+**Atenção:** essas páginas são documentação dos requisitos do legado, não declaração de que todas as funcionalidades já estão implementadas no MVP. O PDF original permanece fora do repositório público por cautela com dados de identificação e direitos sobre conteúdos históricos.
