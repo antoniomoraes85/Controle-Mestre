@@ -58,3 +58,23 @@ Em resposta à avaliação visual da primeira versão, foi configurado o tema da
 - [Testes dos componentes](tests/test_ui_theme.py)
 
 **Validação:** testes automatizados e compilação Python passaram. A aparência de uma prévia HTML estática foi inspecionada; a aplicação Streamlit completa ainda precisa de teste visual em navegador com as dependências instaladas.
+
+## Painel Web Premium v0.3 (05/11/2026)
+
+A experiência de uso foi reorganizada a partir das referências do usuário: **Meta atual → Atividades → Execução → Desempenho**. A interface agora é uma aplicação web local independente de Streamlit, com aparência responsiva para computador e celular. **Não copia marca ou componentes proprietários de terceiros.**
+
+### Acesso local no Windows
+
+1. Instale Python 3.11+ e extraia o pacote preservando o banco local em `dados/controle_mestre.db`.
+2. Execute `iniciar_windows.bat` (ou `iniciar_painel_premium_windows.bat`).
+3. Abra **http://127.0.0.1:8765**. A interface anterior permanece em `iniciar_streamlit_windows.bat`.
+
+### Funções implementadas
+
+Meta semanal com progresso por atividade e horas; cronômetro com registro de sessão; quadro de prioridades, planejamento semanal e tipos de dia, tarefas concluíveis, questões, revisões, desempenho por disciplina, histórico e configurações. É o mesmo SQLite e o mesmo motor do Streamlit. Dados ausentes permanecem ausentes.
+
+**Testes automatizados:** 17 (12 do núcleo + 5 HTTP do painel). **Inspeção visual:** layout renderizado em viewport desktop 1440 px e móvel 390 px, sem rolagem horizontal; a navegação foi verificada em navegador automatizado usando dados locais fornecidos pela própria API como resposta interceptada. Os testes HTTP foram executados em SQLite temporário isolado. **Não foi realizada homologação em um Windows do usuário.**
+
+⚠️ **Não hospede o servidor em público:** não existem autenticação, multiusuário, pagamentos, integrações automáticas Anki nem controles comerciais. O servidor escuta somente `127.0.0.1`.
+
+Veja [GUIA_PAINEL_WEB_V03.md](GUIA_PAINEL_WEB_V03.md) para instruções, limites e evolução.
