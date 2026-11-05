@@ -34,3 +34,13 @@ venv/
 .vscode/
 .coverage
 htmlcov/
+
+# Materiais de terceiros e artefatos gerados
+*.pdf
+*.docx
+*.apkg
+*.colpkg
+node_modules/
+dist/
+PREVIA_*.png
+*.log
