@@ -1,46 +1,32 @@
-# Dados pessoais, importações e backups: NUNCA versionar
-dados/
+# Dados pessoais e credenciais — nunca publicar no repositório público.
+/dados/
 *.db
-*.db-*
 *.sqlite
 *.sqlite3
-*.sqlite3-*
+*.db-wal
+*.db-shm
 *.xlsx
 *.xlsm
 *.xls
 *.csv
-*.tsv
-*.zip
-*.bak
-*.jsonl
-*.env
+*.apkg
+*.colpkg
+*.pdf
+*.docx
+.env
 .env.*
 !.env.example
 *.pem
 *.key
-**/backups/
-**/exports/
-**/imports/
-**/secrets/
-# Python e IDE
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
-venv/
-.envrc
-.DS_Store
-.idea/
-.vscode/
-.coverage
-htmlcov/
-
-# Materiais de terceiros e artefatos gerados
-*.pdf
-*.docx
-*.apkg
-*.colpkg
 node_modules/
 dist/
 PREVIA_*.png
 *.log
+.DS_Store
+
+# Logs de execucao local
+logs/
