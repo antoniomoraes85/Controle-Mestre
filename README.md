@@ -102,3 +102,21 @@ Veja o [Guia v0.4](GUIA_CONTROLE_MESTRE_V04.md) e mantenha cópia do arquivo `da
 ### Futuro SaaS
 
 Veja [ADR-002: migração para multiusuário](docs/ADR-002-CAMINHO-PARA-SAAS.md). **Autenticação, isolamento real por conta, cobrança e hospedagem pública ainda não estão implementados.** Não coloque o servidor local na internet.
+
+## Correção de abertura no Windows — v0.4.1
+
+Caso `http://127.0.0.1:8765` apresente `ERR_CONNECTION_REFUSED`, isso significa que o servidor web local não está respondendo. `127.0.0.1:8501` é a interface anterior do Streamlit e não substitui o painel web.
+
+A v0.4.1 contém:
+
+- Inicializador Windows que verifica Python 3.11+, arquivos e acesso ao banco antes de abrir o navegador.
+- Seleção de porta local livre entre 8765 e 8770 e reutilização de instância existente.
+- `diagnosticar_windows.bat` para emitir diagnóstico quando não abrir.
+- Registro local de falhas em `logs/ultimo_erro_inicializacao.log`, excluído do Git.
+- Cinco testes novos de seleção de porta e verificação de instalação (30 testes Python no total).
+
+Execute `iniciar_windows.bat` da pasta **extraída** de dentro do ZIP. Mantenha a janela do terminal aberta. Use sempre o endereço exibido nela, que pode ser `8766` ou outra porta.
+
+Consulte [Instruções de correção v0.4.1](CORRECAO_ABERTURA_V041.md).
+
+**Não foi possível diagnosticar a causa precisa no Windows somente pelas imagens**; a correção adiciona diagnóstico e recuperação. Os testes HTTP foram realizados em ambiente Linux; teste manual final no Windows permanece necessário.
