@@ -78,3 +78,27 @@ Meta semanal com progresso por atividade e horas; cronômetro com registro de se
 ⚠️ **Não hospede o servidor em público:** não existem autenticação, multiusuário, pagamentos, integrações automáticas Anki nem controles comerciais. O servidor escuta somente `127.0.0.1`.
 
 Veja [GUIA_PAINEL_WEB_V03.md](GUIA_PAINEL_WEB_V03.md) para instruções, limites e evolução.
+
+## v0.4 — Avaliações e componentes (05/11/2026)
+
+**Esta é uma versão pessoal e local.** A interface original foi preservada e o JavaScript começou a ser separado em módulos nativos (`web/modules/`). Foram acrescentados os módulos de **simulados e redações**, recuperando parte das funcionalidades documentadas na versão histórica da plataforma.
+
+- Simulados: acertos, erros, brancos, chutes e nota opcional. Validação de totais e edição pela exclusão + novo registro.
+- Redações: tema, banca, nota e nota máxima.
+- Banco SQLite: migração aditiva e idempotente, preserva registros existentes.
+- Comparações: simulados não são somados às questões avulsas; notas de redações são normalizadas.
+- API local com testes de origem, restrição a módulos estáticos e validação de entrada.
+
+### Testes
+
+`python -m unittest discover -s tests -v`
+
+**25 testes automatizados** e checagem de sintaxe dos módulos JS. O navegador automatizado deste ambiente bloqueou navegação, portanto a inspeção visual final deve ser feita no computador do usuário.
+
+### Como atualizar
+
+Veja o [Guia v0.4](GUIA_CONTROLE_MESTRE_V04.md) e mantenha cópia do arquivo `dados/controle_mestre.db`. O banco pessoal **não** deve ser enviado ao GitHub.
+
+### Futuro SaaS
+
+Veja [ADR-002: migração para multiusuário](docs/ADR-002-CAMINHO-PARA-SAAS.md). **Autenticação, isolamento real por conta, cobrança e hospedagem pública ainda não estão implementados.** Não coloque o servidor local na internet.
