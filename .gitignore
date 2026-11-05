@@ -1,0 +1,36 @@
+# Dados pessoais, importações e backups: NUNCA versionar
+dados/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+*.tsv
+*.zip
+*.bak
+*.jsonl
+*.env
+.env.*
+!.env.example
+*.pem
+*.key
+**/backups/
+**/exports/
+**/imports/
+**/secrets/
+# Python e IDE
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.envrc
+.DS_Store
+.idea/
+.vscode/
+.coverage
+htmlcov/
