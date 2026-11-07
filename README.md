@@ -6,7 +6,7 @@ Plataforma de planejamento e controle inteligente de estudos.
 
 O projeto retoma a plataforma anterior apresentada pelo canal **Atrator Concursos** em 18/09/2023: [PLATAFORMA CONTROLE MESTRE](https://youtu.be/NAwtZ3KIxao). A descrição pública apresenta planejamento semanal, adaptação à rotina, metas diárias, estudos guiados, revisões, simulados, redações, desempenho por tópico e apostilas de apoio. O vídeo foi identificado por seus metadados; não houve auditoria visual de todas as telas.
 
-## Versão atual: v0.5.1 (catálogo PDF e conexão inicial Qconcursos; homologação pendente)
+## Versão atual: v0.6.0 (ciclo fiscal de nove disciplinas e AnkiConnect local; homologação pendente)
 
 - **Painel web local + Python + SQLite**: execução local e monousuário; Streamlit permanece como interface legada.
 - Metas semanais, cronômetro, ciclos de 1 a 10, questões, erros e revisões.
@@ -170,3 +170,16 @@ A integração direta com cursos do Estratégia **não está implantada e depend
 **49 testes Python aprovados e sintaxe JS verificada.** A renderização em navegador automatizado foi bloqueada pela política do ambiente, portanto a interface **ainda precisa ser homologada no Windows**. PDFs reais do curso Estratégia ainda não foram fornecidos nesta etapa. Não há indexação RAG nem IA executando sobre materiais licenciados. O futuro SaaS não poderá redistribuir esses arquivos sem autorização.
 
 O repositório permanece público; não suba materiais, PDFs, bancos locais, CSVs pessoais nem credenciais. Consulte as issues CM-002, CM-003, CM-004, CM-024, CM-026 e CM-027 para pendências e critérios de aceite.
+
+## v0.6.0 — Ciclo Fiscal RS + SC e AnkiConnect local (07/11/2026)
+
+**Primeiro ciclo conforme escolha do proprietário:** Contabilidade Geral; Contabilidade de Custos; Análise das Demonstrações Contábeis; Direito Tributário; Reforma Tributária (EC 132/2023 + LC 214/2025); Reforma Tributária (LC 227/2026); Direito Administrativo; Direito Civil; Direito Constitucional.
+
+- [Guia de atualização v0.6.0](GUIA_CONTROLE_MESTRE_V06.md)
+- **Trilha Fiscal RS+SC:** 50 assuntos iniciais, plano de teoria → questões → Passo Estratégico → revisão por questões → caderno de erros, com prévia e confirmação, registro de estudo real, bloqueio de passado e respeito ao teto diário informado. Não duplica tarefas em replanejamento da mesma semana. **Não é edital integral, nem motor pedagógico validado**.
+- **Estratégia:** organização local por tipo (Teoria/Passo_Estrategico) e por disciplina; reconhecimento automático da disciplina pelo nome de pasta; vínculo ao assunto ainda manual. PDFs protegidos permanecem no computador.
+- **AnkiConnect:** ponte local apenas de leitura, APIs v5 `version`, `deckNamesAndIds`, `findCards`, com retrato diário por perfil/disciplina (card_count, due, new, rated:1) sem alterar cartões, FSRS, histórico de horas ou grades. **Não há sincronização automática de eventos de revisão individual nesta versão**.
+- **Qconcursos:** importação por CSV autorizado e atalhos da v0.5.1 mantidos; sem login ou API oficial.
+- **Validação:** 64 testes Python passaram, JS validado sintaticamente; não houve acesso ao Anki do usuário nem homologação Windows. **O GitHub não contém histórico privado, PDFs, base SQLite ou credenciais**.
+
+**Próxima frente:** testar no Windows com perfil Anki aberto e PDFs próprios, reconciliar eventos individuais sem duplicidades, mapear aulas aos 50 assuntos e avançar para o edital verticalizado versionado. Não publicar servidor local na internet.
