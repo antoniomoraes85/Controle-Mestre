@@ -13,9 +13,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from anki_bridge import local_status as anki_status, detect as anki_detect, collect_snapshot as anki_collect, save_snapshot as anki_save
 from adaptive import diagnose, preview_plan, apply_plan
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
-from sources import status as sources_status, scan_pdfs, assign_material, register_bookmark, preview_csv, import_csv
+from sources import status as sources_status, scan_pdfs, assign_material, register_bookmark, preview_csv, import_csv, path_for_material
+from fiscal_path import status as fiscal_status, activate as fiscal_activate, preview_week as fiscal_preview_week, apply_week as fiscal_apply_week, complete_task as fiscal_complete_task
 from core import (ROOT, connect, all_rows, metric_data, subject_metrics,
                   get_days, save_day, generate_plan, add_session, add_questions,
                   DAY_CAPS, METHODS)
@@ -60,7 +62,7 @@ def overview(c, today=None):
          ROUND(AVG(progress),1) AS pct FROM topics GROUP BY subject''')
     return dict(
         today=today.isoformat(), week_start=start_iso, week_end=end_iso,
-        sources=sources_status(c),
+        sources=sources_status(c), fiscal=fiscal_status(c,today), anki_live=anki_status(c),
         metrics=metrics, ranking=ranked, plans=plans, done=done, assessments=assessment_summary(c),
         adaptive=diagnose(c, today), adaptive_preview=preview_plan(c,start,today),
         weeks=weeks, sessions=sessions, question_history=qq, reviews=revisions,
@@ -74,7 +76,7 @@ def overview(c, today=None):
 
 
 class AppHandler(BaseHTTPRequestHandler):
-    server_version='ControleMestreLocal/0.5.1'
+    server_version='ControleMestreLocal/0.6.0'
     def log_message(self, fmt, *args):
         # Do not log user payloads.
         pass
@@ -110,11 +112,30 @@ class AppHandler(BaseHTTPRequestHandler):
             c=connect()
             try:return self._json(200,sources_status(c))
             finally:c.close()
+        if route=='/api/anki/check':
+            try:return self._json(200,anki_detect())
+            except ValueError as exc:return self._json(503,{'error':str(exc)})
         if route=='/api/adaptive':
             c=connect()
             try:return self._json(200,{'diagnosis':diagnose(c),'preview':preview_plan(c)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.5.1','mode':'private-local','multiuser':False})
+        if re.fullmatch(r'/api/fiscal/pdf/\d{1,12}',route):
+            c=connect()
+            try:
+                path=path_for_material(c,int(route.rsplit('/',1)[-1]))
+                size=path.stat().st_size
+                self.send_response(200)
+                for k,v in [('Content-Type','application/pdf'),('Content-Length',str(size)),
+                            ('X-Content-Type-Options','nosniff'),('Cache-Control','no-store'),
+                            ('Content-Security-Policy',"default-src 'none'; sandbox"),
+                            ('Content-Disposition','inline')]:self.send_header(k,v)
+                self.end_headers()
+                with path.open('rb') as pdf:
+                    for chunk in iter(lambda:pdf.read(1024*1024),b''):self.wfile.write(chunk)
+                return
+            except ValueError as exc:return self._json(404,{'error':str(exc)})
+            finally:c.close()
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.6.0','mode':'private-local','multiuser':False})
         if route=='/':route='/index.html'
         static={'/index.html':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8',
                 '/app.js':'text/javascript; charset=utf-8'}
@@ -143,11 +164,27 @@ class AppHandler(BaseHTTPRequestHandler):
         route=urlsplit(self.path).path
         c=connect()
         try:
+            if route=='/api/anki/sync':
+                if args.get('confirm') is not True:raise ValueError('Confirmação explícita necessária para sincronizar.')
+                snap=anki_collect(args.get('profile','Principal'))
+                return self._json(200,anki_save(c,snap,confirm=True))
+            if route=='/api/fiscal/activate':
+                if args.get('confirm') is not True:raise ValueError('Confirme a ativação da trilha.')
+                return self._json(200,fiscal_activate(c))
+            if route=='/api/fiscal/status':
+                return self._json(200,fiscal_status(c,week_start=args.get('week')))
+            if route=='/api/fiscal/preview':
+                return self._json(200,fiscal_preview_week(c,args.get('week')))
+            if route=='/api/fiscal/apply':
+                return self._json(200,fiscal_apply_week(c,args.get('week'),args.get('confirm') is True))
+            if route=='/api/fiscal/complete':
+                return self._json(200,fiscal_complete_task(c,args['id'],args.get('minutes',0),
+                    args.get('total'),args.get('correct'),args.get('error_type',''),args.get('notes',''),args.get('day')))
             if route=='/api/sources/scan':
                 return self._json(200,scan_pdfs(c))
             if route=='/api/sources/material':
                 return self._json(200,assign_material(c,args['id'], args.get('subject',''),
-                    args.get('topic',''),args.get('course',''),args.get('lesson','')))
+                    args.get('topic',''),args.get('course',''),args.get('lesson',''),args.get('material_type')))
             if route=='/api/qconcursos/bookmark':
                 return self._json(201,register_bookmark(c,args['title'],args['url'],
                     args.get('subject',''),args.get('topic','')))
