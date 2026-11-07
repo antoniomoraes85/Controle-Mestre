@@ -100,3 +100,19 @@ Essas faixas não são promessa de prazo, podem se sobrepor e pressupõem retrab
 - [Integrações, RL e marca](ESTRATEGIA_ANKI_RL_MARCA.md)
 - [Estratégia SaaS](ADR-002-CAMINHO-PARA-SAAS.md)
 - [Matriz legado](MATRIZ_DE_PARIDADE_E_BACKLOG.md)
+## Registro de avanço — release v0.5.1 (07/11/2026)
+
+**Implementação local (não homologada pelo usuário):**
+
+| Issue | Estado de engenharia | Evidência | Bloqueio remanescente |
+|---|---|---|---|
+| [CM-002](https://github.com/antoniomoraes85/Controle-Mestre/issues/2) | Parcial | App reservou faixa 8771–8780; porta 8765 preservada ao AnkiConnect; testes | Teste simultâneo no Windows |
+| [CM-003](https://github.com/antoniomoraes85/Controle-Mestre/issues/3) | Parcial | `backup_manager.py` e testes SQLite | Homologar restauração/rollback com cópia do banco real |
+| [CM-004](https://github.com/antoniomoraes85/Controle-Mestre/issues/4) | Bloqueado na inspeção visual | 49 testes Python; sintaxe JS; navegador automatizado bloqueado | E2E desktop/mobile no Windows |
+| [CM-010](https://github.com/antoniomoraes85/Controle-Mestre/issues/10) | Parcial | `sources.py` cataloga PDF e permite vínculo manual aula–disciplina–assunto | Mapear curso completo contra edital e validar aula real |
+| [CM-024](https://github.com/antoniomoraes85/Controle-Mestre/issues/24) | Parcial | Catálogo local Estratégia sem persistência de texto integral | PDFs do titular ainda não fornecidos nesta etapa |
+| [CM-025](https://github.com/antoniomoraes85/Controle-Mestre/issues/25) | Preparatório | Metadados e hash; PyMuPDF opcional para páginas | Análise semântica/OCR dependem de escopo e licenças |
+| [CM-026](https://github.com/antoniomoraes85/Controle-Mestre/issues/26) | Parcial | Links Qconcursos e importação CSV do aluno, com prévia | Sem API ou exportação nativa confirmada; testar dados autorizados |
+| [CM-027](https://github.com/antoniomoraes85/Controle-Mestre/issues/27) | Parcial | CSV validado e deduplicado por ID/hash | Reconciliar importação com questões lançadas manualmente |
+
+**Critério de conclusão:** issues acima permanecem abertas. Testes automatizados não substituem homologação no Windows e validação pedagógica. O ZIP v0.5.1 preserva o banco do usuário se copiado conforme guia; PDFs e CSVs pessoais não fazem parte do pacote nem do GitHub.
