@@ -17,10 +17,11 @@ from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parent
 HOST = '127.0.0.1'
-PORTS = tuple(range(8765, 8771))
+PORTS = tuple(range(8771, 8781))  # 8765 reservado ao AnkiConnect
 ESSENTIAL = ('core.py', 'web_server.py', 'assessments.py',
              'web/index.html', 'web/style.css', 'web/app.js',
-             'web/modules/assessments.js', 'adaptive.py', 'web/modules/adaptive.js')
+             'web/modules/assessments.js', 'adaptive.py', 'web/modules/adaptive.js',
+             'sources.py', 'backup_manager.py', 'web/modules/sources.js')
 
 
 def _existing_controle_mestre(port: int) -> bool:
@@ -30,7 +31,7 @@ def _existing_controle_mestre(port: int) -> bool:
             return (resp.status == 200 and info.get('ok') is True
                     and info.get('app') == 'CONTROLE MESTRE'
                     and info.get('mode') == 'private-local'
-                    and info.get('version') == '0.5.0')
+                    and info.get('version') == '0.5.1')
     except (OSError, HTTPError, URLError, ValueError, TypeError):
         return False
 
@@ -51,7 +52,7 @@ def select_port():
             return port, True
         if _port_is_available(port):
             return port, False
-    raise RuntimeError('Todas as portas locais 8765 a 8770 estao ocupadas.')
+    raise RuntimeError('Todas as portas locais 8771 a 8780 estao ocupadas.')
 
 
 def check_environment():
@@ -66,6 +67,9 @@ def check_environment():
                            + '. Extraia o ZIP completo antes de executar.')
     import core
     import web_server  # noqa: F401
+    from backup_manager import make_backup
+    bkp = make_backup(core.DB_PATH, ROOT / 'dados' / 'backups')
+    if bkp: print(f'Backup diario verificado: {bkp.name}')
     conn = core.connect()
     try:
         conn.execute('SELECT 1').fetchone()
