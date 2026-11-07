@@ -30,3 +30,8 @@ PREVIA_*.png
 
 # Logs de execucao local
 logs/
+
+# Acervo pessoal e importações locais (exclusão intencional)
+dados/materiais/
+dados/importacoes/
+dados/backups/
