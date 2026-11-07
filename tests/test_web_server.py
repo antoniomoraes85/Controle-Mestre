@@ -11,6 +11,8 @@ from urllib.request import Request,urlopen
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import core
+import sources
+from unittest.mock import patch
 from web_server import AppHandler, current_week
 
 class WebServerTests(unittest.TestCase):
@@ -119,6 +121,38 @@ class WebServerTests(unittest.TestCase):
         with urlopen(self.base+'/modules/adaptive.js',timeout=5) as r:
             self.assertEqual(r.status,200)
             self.assertIn(b'adaptiveView',r.read())
+
+
+    def test_sources_api_and_qc_bookmarks(self):
+        code,d=self.call('/api/overview')
+        self.assertEqual(code,200)
+        self.assertIn('sources',d)
+        self.assertEqual(len(d['sources']['materials']),0)
+        code,_=self.call('/api/qconcursos/bookmark',{'title':'Bloco FCC','url':'https://www.qconcursos.com/questoes-de-concursos/questoes'})
+        self.assertEqual(code,201)
+        code,_=self.call('/api/qconcursos/bookmark',{'title':'site invalido','url':'https://qconcursos.com.evil.invalid'})
+        self.assertEqual(code,400)
+        self.assertEqual(len(self.call('/api/sources')[1]['bookmarks']),1)
+        code,_=self.call('/api/qconcursos/import',{'file_name':'missing.csv','confirm':True})
+        self.assertEqual(code,400)
+        with urlopen(self.base+'/modules/sources.js',timeout=5) as r:
+            self.assertIn(b'sourcesView',r.read())
+
+    def test_sources_scan_and_csv_preview_endpoints(self):
+        base=Path(self.tmp.name)
+        pdfdir=base/'pdfs';pdfdir.mkdir()
+        (pdfdir/'curso-111-aula-03.pdf').write_bytes(b'%PDF-1.4\nfixture\n%%EOF')
+        csvdir=base/'qc';csvdir.mkdir()
+        (csvdir/'my_results.csv').write_text('data;disciplina;assunto;total;acertos;banca\n07/11/2026;Direito Tributário;Obrigação;10;8;FCC\n',encoding='utf-8')
+        with patch.object(sources,'PDF_ROOT',pdfdir),patch.object(sources,'QC_ROOT',csvdir):
+            self.assertEqual(self.call('/api/sources/scan',{})[1]['scanned'],1)
+            _,data=self.call('/api/sources')
+            self.assertEqual(len(data['materials']),1)
+            self.assertEqual(data['csv_files'],['my_results.csv'])
+            self.assertEqual(self.call('/api/qconcursos/preview',{'file_name':'my_results.csv'})[1]['rows'],1)
+            self.assertEqual(self.call('/api/qconcursos/import',{'file_name':'my_results.csv'})[0],400)
+            self.assertEqual(self.call('/api/qconcursos/import',{'file_name':'my_results.csv','confirm':True})[1]['inserted'],1)
+            self.assertEqual(self.call('/api/qconcursos/import',{'file_name':'my_results.csv','confirm':True})[1]['inserted'],0)
 
     def test_no_path_traversal(self):
         self.assertEqual(self.call('/some/../secrets')[0],404)
