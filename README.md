@@ -6,9 +6,9 @@ Plataforma de planejamento e controle inteligente de estudos.
 
 O projeto retoma a plataforma anterior apresentada pelo canal **Atrator Concursos** em 18/09/2023: [PLATAFORMA CONTROLE MESTRE](https://youtu.be/NAwtZ3KIxao). A descrição pública apresenta planejamento semanal, adaptação à rotina, metas diárias, estudos guiados, revisões, simulados, redações, desempenho por tópico e apostilas de apoio. O vídeo foi identificado por seus metadados; não houve auditoria visual de todas as telas.
 
-## Versão atual: v0.2 (MVP pessoal com interface reformulada)
+## Versão atual: v0.5 (motor heurístico pessoal; homologação pendente)
 
-- **Streamlit + Python + SQLite**: execução local e monousuário.
+- **Painel web local + Python + SQLite**: execução local e monousuário; Streamlit permanece como interface legada.
 - Metas semanais, cronômetro, ciclos de 1 a 10, questões, erros e revisões.
 - Importação manual de Excel e CSV agregado do Anki.
 - Planejamento por pesos de disciplinas e disponibilidade diária.
@@ -140,3 +140,17 @@ Leia [Guia de atualização v0.5](GUIA_CONTROLE_MESTRE_V05.md). **Faça backup l
 ### Limitações
 
 Esta heurística não está validada como equivalente ao Guruja nem ao acompanhamento de professores. Não há dados comparativos externos, integração automática Anki, usuário autenticado ou infraestrutura SaaS. **Nunca exponha o serviço local na internet.**
+
+## Plano diretor 2026–2027 e 44 tarefas rastreáveis
+
+**Pesquisa e backlog consolidados em 07/11/2026.** A referência funcional inclui Guruja, Estudei, Aprovado App, Estudaqui, TEC, Qconcursos, Anki, Estratégia, RemNote, StudyFetch e SuperMemo. Comparação não certifica equivalência pedagógica.
+
+- [Plano diretor com 44 entregas e estimativas](docs/PLANO_DIRETOR_2026_2027.md)
+- [Benchmark documentado de plataformas e vídeos](docs/BENCHMARK_PLATAFORMAS_2026.md)
+- [Estratégia Concursos, Anki, IA/RL, domínio e marca](docs/ESTRATEGIA_ANKI_RL_MARCA.md)
+- [Acompanhar **todas as issues de desenvolvimento**](https://github.com/antoniomoraes85/Controle-Mestre/issues)
+- [Issues P0 prioritárias](https://github.com/antoniomoraes85/Controle-Mestre/issues?q=is%3Aissue+is%3Aopen+P0)
+
+**Primeira etapa de execução:** CM-001 segurança/IP; CM-002 porta e AnkiConnect; CM-003 backup; CM-004 testes Windows. Depois: CM-009 edital, CM-015 causas de erros, CM-021/022 Anki, CM-024 índice do Estratégia. **Nenhuma das novas 44 issues deve ser considerada concluída sem critérios de aceite.**
+
+A integração direta com cursos do Estratégia **não está implantada e depende do acesso/licença permitidos**. Na versão pessoal, favorecer links a aulas e metadados, sem redistribuir PDFs. O RL é pesquisa posterior ao baseline heurístico com retenção medida e avaliação offline. Domain/nome comercial só depois de triagem INPI; comprar endereço antes de concluir o SaaS é razoável após decidir nome.
