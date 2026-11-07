@@ -1,4 +1,4 @@
-"""CONTROLE MESTRE v0.3 — interface web local sobre o banco SQLite existente.
+"""CONTROLE MESTRE v0.5 — interface web local sobre o banco SQLite existente.
 Sem serviços externos. Escuta somente 127.0.0.1; não é adequado para hospedagem pública.
 """
 from __future__ import annotations
@@ -13,6 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from adaptive import diagnose, preview_plan, apply_plan
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
 from core import (ROOT, connect, all_rows, metric_data, subject_metrics,
                   get_days, save_day, generate_plan, add_session, add_questions,
@@ -59,6 +60,7 @@ def overview(c, today=None):
     return dict(
         today=today.isoformat(), week_start=start_iso, week_end=end_iso,
         metrics=metrics, ranking=ranked, plans=plans, done=done, assessments=assessment_summary(c),
+        adaptive=diagnose(c, today), adaptive_preview=preview_plan(c,start,today),
         weeks=weeks, sessions=sessions, question_history=qq, reviews=revisions,
         anki=anki, topic_progress=progress,
         cycles=all_rows(c, 'SELECT subject,cycle,ROUND(SUM(minutes),0) AS minutes FROM sessions WHERE cycle IS NOT NULL GROUP BY subject,cycle ORDER BY cycle,subject'),
@@ -70,7 +72,7 @@ def overview(c, today=None):
 
 
 class AppHandler(BaseHTTPRequestHandler):
-    server_version='ControleMestreLocal/0.4.1'
+    server_version='ControleMestreLocal/0.5.0'
     def log_message(self, fmt, *args):
         # Do not log user payloads.
         pass
@@ -102,7 +104,11 @@ class AppHandler(BaseHTTPRequestHandler):
             with_db=connect()
             try: return self._json(200,overview(with_db))
             finally: with_db.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.4.1','mode':'private-local','multiuser':False})
+        if route=='/api/adaptive':
+            c=connect()
+            try:return self._json(200,{'diagnosis':diagnose(c),'preview':preview_plan(c)})
+            finally:c.close()
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.5.0','mode':'private-local','multiuser':False})
         if route=='/':route='/index.html'
         static={'/index.html':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8',
                 '/app.js':'text/javascript; charset=utf-8'}
@@ -140,6 +146,11 @@ class AppHandler(BaseHTTPRequestHandler):
                 if not isinstance(ident,int) or isinstance(ident,bool):raise ValueError('ID inválido')
                 delete_assessment(c,kind,ident)
                 return self._json(200,{'ok':True})
+            if route=='/api/plan/adaptive':
+                ws=date.fromisoformat(args.get('week') or current_week().isoformat())
+                if args.get('confirm') is not True:
+                    raise ValueError('É necessário confirmar a substituição das atividades pendentes.')
+                return self._json(200,apply_plan(c,ws,confirm=True))
             if route=='/api/plan/generate':
                 ws=date.fromisoformat(args.get('week') or current_week().isoformat())
                 return self._json(200,generate_plan(c,ws))
