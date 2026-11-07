@@ -120,3 +120,23 @@ Execute `iniciar_windows.bat` da pasta **extraída** de dentro do ZIP. Mantenha 
 Consulte [Instruções de correção v0.4.1](CORRECAO_ABERTURA_V041.md).
 
 **Não foi possível diagnosticar a causa precisa no Windows somente pelas imagens**; a correção adiciona diagnóstico e recuperação. Os testes HTTP foram realizados em ambiente Linux; teste manual final no Windows permanece necessário.
+
+## v0.5 — Planejamento adaptativo por assunto (07/11/2026)
+
+Nova seção web **Inteligência de estudos**, com heurísticas auditáveis e prévia semanal. Ainda é uma versão pessoal/local para testes.
+
+- Diagnóstico por assunto com base nos últimos 90 dias de questões avulsas, pesos de disciplinas e incidência cadastrada, progresso, revisões pendentes e causas dos erros das baterias.
+- Diferenciação explícita entre desempenho aferido e ausência de dados; amostras menores que 15 questões não são rotuladas como incompetência.
+- Sugestões explicáveis de Teoria, Questões, Revisão ou Caderno de erros.
+- Geração de prévia semanal sem alteração do banco e com aviso de falta de disponibilidade quando a carga horária cadastrada não alcança a meta.
+- Aplicação apenas mediante confirmação explícita: substitui tarefas pendentes da semana em transação SQLite e preserva tarefas concluídas.
+- Inicializador não reutiliza a porta de servidor antigo (somente instâncias v0.5).
+- 40 testes automatizados passaram no ambiente de desenvolvimento; navegação automatizada por Chromium foi bloqueada por política administrativa, portanto a conferência visual no Windows permanece pendente.
+
+### Instalação
+
+Leia [Guia de atualização v0.5](GUIA_CONTROLE_MESTRE_V05.md). **Faça backup local de `dados/controle_mestre.db` antes de atualizar.** O repositório público não contém banco pessoal.
+
+### Limitações
+
+Esta heurística não está validada como equivalente ao Guruja nem ao acompanhamento de professores. Não há dados comparativos externos, integração automática Anki, usuário autenticado ou infraestrutura SaaS. **Nunca exponha o serviço local na internet.**
