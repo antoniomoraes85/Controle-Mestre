@@ -34,3 +34,7 @@ main{padding:33px 40px 54px;max-width:1650px;margin:0 auto;min-height:calc(100vh
 .adaptive-badges span{border:1px solid #445148;border-radius:8px;padding:4px 8px}
 .adaptive-score{font-size:18px;color:#dcf4af}
 @media (max-width:700px){.adaptive-item{gap:8px}.adaptive-score{font-size:15px}.adaptive-rationale{font-size:11px}}
+/* CM v0.5.1: catálogo local */
+a.btn {display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.panel-head {gap:10px;flex-wrap:wrap}
+.panel .act-table small{font-size:10px;color:#aeb7bd;overflow-wrap:anywhere}
