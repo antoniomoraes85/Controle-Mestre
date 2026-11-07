@@ -20,7 +20,7 @@ HOST = '127.0.0.1'
 PORTS = tuple(range(8765, 8771))
 ESSENTIAL = ('core.py', 'web_server.py', 'assessments.py',
              'web/index.html', 'web/style.css', 'web/app.js',
-             'web/modules/assessments.js')
+             'web/modules/assessments.js', 'adaptive.py', 'web/modules/adaptive.js')
 
 
 def _existing_controle_mestre(port: int) -> bool:
@@ -29,7 +29,8 @@ def _existing_controle_mestre(port: int) -> bool:
             info = json.load(resp)
             return (resp.status == 200 and info.get('ok') is True
                     and info.get('app') == 'CONTROLE MESTRE'
-                    and info.get('mode') == 'private-local')
+                    and info.get('mode') == 'private-local'
+                    and info.get('version') == '0.5.0')
     except (OSError, HTTPError, URLError, ValueError, TypeError):
         return False
 
