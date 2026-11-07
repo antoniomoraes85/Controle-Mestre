@@ -6,7 +6,7 @@ Plataforma de planejamento e controle inteligente de estudos.
 
 O projeto retoma a plataforma anterior apresentada pelo canal **Atrator Concursos** em 18/09/2023: [PLATAFORMA CONTROLE MESTRE](https://youtu.be/NAwtZ3KIxao). A descrição pública apresenta planejamento semanal, adaptação à rotina, metas diárias, estudos guiados, revisões, simulados, redações, desempenho por tópico e apostilas de apoio. O vídeo foi identificado por seus metadados; não houve auditoria visual de todas as telas.
 
-## Versão atual: v0.5 (motor heurístico pessoal; homologação pendente)
+## Versão atual: v0.5.1 (catálogo PDF e conexão inicial Qconcursos; homologação pendente)
 
 - **Painel web local + Python + SQLite**: execução local e monousuário; Streamlit permanece como interface legada.
 - Metas semanais, cronômetro, ciclos de 1 a 10, questões, erros e revisões.
@@ -154,3 +154,19 @@ Esta heurística não está validada como equivalente ao Guruja nem ao acompanha
 **Primeira etapa de execução:** CM-001 segurança/IP; CM-002 porta e AnkiConnect; CM-003 backup; CM-004 testes Windows. Depois: CM-009 edital, CM-015 causas de erros, CM-021/022 Anki, CM-024 índice do Estratégia. **Nenhuma das novas 44 issues deve ser considerada concluída sem critérios de aceite.**
 
 A integração direta com cursos do Estratégia **não está implantada e depende do acesso/licença permitidos**. Na versão pessoal, favorecer links a aulas e metadados, sem redistribuir PDFs. O RL é pesquisa posterior ao baseline heurístico com retenção medida e avaliação offline. Domain/nome comercial só depois de triagem INPI; comprar endereço antes de concluir o SaaS é razoável após decidir nome.
+
+## v0.5.1 — Biblioteca Estratégia e Qconcursos (07/11/2026)
+
+**Uso local e pessoal, sem integração oficial de contas.** Novas funções:
+
+- [Guia de atualização e uso v0.5.1](GUIA_CONTROLE_MESTRE_V051.md)
+- [Changelog técnico](CHANGELOG.md)
+- `sources.py`: catálogo de metadados de PDFs colocados pelo usuário em `dados/materiais/estrategia/` sem persistir textos ou arquivos no banco, com vínculo aula–disciplina–assunto na nova tela **Materiais e Qconcursos**.
+- Registro de links HTTPS oficiais de cadernos Qconcursos. Não há login, scraping nem API oficial integrada.
+- CSV preparado pelo estudante com resultados agregados da sua conta, sob `dados/importacoes/qconcursos/`; leitura, prévia, confirmação, transação atômica e deduplicação por ID/hash, **sem enunciados**.
+- `backup_manager.py`: backup verificado do banco existente na primeira inicialização diária, antes de migrar, armazenado somente em `dados/backups/`.
+- `launch.py`: portas 8771–8780. **8765 reservada ao AnkiConnect.** Testes automatizados de reserva.
+
+**49 testes Python aprovados e sintaxe JS verificada.** A renderização em navegador automatizado foi bloqueada pela política do ambiente, portanto a interface **ainda precisa ser homologada no Windows**. PDFs reais do curso Estratégia ainda não foram fornecidos nesta etapa. Não há indexação RAG nem IA executando sobre materiais licenciados. O futuro SaaS não poderá redistribuir esses arquivos sem autorização.
+
+O repositório permanece público; não suba materiais, PDFs, bancos locais, CSVs pessoais nem credenciais. Consulte as issues CM-002, CM-003, CM-004, CM-024, CM-026 e CM-027 para pendências e critérios de aceite.
