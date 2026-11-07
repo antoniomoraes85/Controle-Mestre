@@ -116,3 +116,18 @@ Essas faixas não são promessa de prazo, podem se sobrepor e pressupõem retrab
 | [CM-027](https://github.com/antoniomoraes85/Controle-Mestre/issues/27) | Parcial | CSV validado e deduplicado por ID/hash | Reconciliar importação com questões lançadas manualmente |
 
 **Critério de conclusão:** issues acima permanecem abertas. Testes automatizados não substituem homologação no Windows e validação pedagógica. O ZIP v0.5.1 preserva o banco do usuário se copiado conforme guia; PDFs e CSVs pessoais não fazem parte do pacote nem do GitHub.
+
+## Registro de avanço — release v0.6.0 (07/11/2026)
+
+**Prioridade escolhida pelo proprietário:** primeiro ciclo com nove disciplinas: Contabilidade Geral, Contabilidade de Custos, Análise das Demonstrações Contábeis, Direito Tributário, Reforma Tributária EC 132/LC 214, Reforma Tributária LC 227/2026, Direito Administrativo, Direito Civil, Direito Constitucional.
+
+| Issue | Avanço verificado em código | Pendência de aceite |
+|---|---|---|
+| CM-009/010 | Trilha independente com 50 assuntos preliminares e identificação de pasta/aula, sem pesos inventados | Verticalização integral do edital, mapeamento real aula↔assunto |
+| CM-011/012/013 | Preview semanal com teoria, questões, Passo e revisão, respeito a plantões e confirmação; tabelas separadas preservam o planejador antigo | Homologar 25h, executar com agenda real, unificar geradores antigos sem apagar IDs |
+| CM-014/015/016/017 | Registro explícito de minutos e acertos por tarefa; caderno de erros condicionado a registros | Erros individuais, retestes e política de reforços calibrada |
+| CM-021/022 | Conector AnkiConnect local de leitura com resumo por baralho/assunto, snapshots idempotentes e contagens sem somar horas ao histórico | Testar com Anki do titular; sincronização de revisão por evento/revlog e reconciliação com CSV |
+| CM-024/025 | Pastas privadas de Teoria e Passo Estratégico; identificação de disciplina ao escanear | Receber PDFs pessoais, vincular tópicos, direitos de indexação avançada |
+| CM-026/027 | Importação autorizada de Qconcursos da v0.5.1 preservada | Importação real e anti-dupla-contagem de eventos individuais |
+
+**Testes:** 64 casos de Python + análise sintática do JS em ambiente isolado. **Nenhuma funcionalidade que dependa do Anki/Windows reais foi homologada.** O ZIP distribuído contém 18 pastas vazias e nenhum dado pessoal. Veja [GUIA v0.6.0](../GUIA_CONTROLE_MESTRE_V06.md).
