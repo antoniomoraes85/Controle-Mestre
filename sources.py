@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from core import ROOT, all_rows, parse_day
+from core import ROOT, all_rows, parse_day, norm, map_subject
 
 PDF_ROOT = ROOT / 'dados' / 'materiais' / 'estrategia'
 QC_ROOT = ROOT / 'dados' / 'importacoes' / 'qconcursos'
@@ -43,6 +43,9 @@ def prepare(c):
         imported_at TEXT NOT NULL
       );
     ''')
+    cols={r[1] for r in c.execute('PRAGMA table_info(study_materials)')}
+    if 'material_type' not in cols:
+        c.execute("ALTER TABLE study_materials ADD COLUMN material_type TEXT NOT NULL DEFAULT 'Teoria'")
 
 
 def pdf_metadata(path: Path):
@@ -86,21 +89,38 @@ def scan_pdfs(c):
                 errors.append(f'Não é PDF válido: {p.name}')
                 continue
         key = p.relative_to(PDF_ROOT).as_posix()
-        existing = c.execute('SELECT digest FROM study_materials WHERE relative_path=?', (key,)).fetchone()
+        folder=norm(str(Path(key).parent))
+        material_type='Passo Estratégico' if 'passo' in folder else 'Teoria'
+        rel_parts=Path(key).parts
+        subject_folder=rel_parts[1] if len(rel_parts)>=3 else ''
+        folder_norm=norm(subject_folder)
+        if 'reforma tributaria' in folder_norm and '227' in folder_norm:
+            auto_subject='Reforma Tributária — LC 227'
+        elif 'reforma tributaria' in folder_norm and ('132' in folder_norm or '214' in folder_norm):
+            auto_subject='Reforma Tributária — EC 132 e LC 214'
+        else:
+            auto_subject=map_subject(subject_folder) if subject_folder else ''
+        if auto_subject and not c.execute('SELECT 1 FROM subjects WHERE name=?',(auto_subject,)).fetchone():
+            auto_subject=''
+        existing = c.execute('SELECT digest,material_type,subject FROM study_materials WHERE relative_path=?', (key,)).fetchone()
         digest = hash_file(p)
-        if existing and existing[0] == digest:
+        if existing and existing[0] == digest and existing[1]==material_type:
+            if not existing[2] and auto_subject:
+                c.execute('UPDATE study_materials SET subject=? WHERE relative_path=?',(auto_subject,key))
             found += 1
             continue
         pages, title = pdf_metadata(p)
         guess = re.search(r'(?:aula)[-_\s]*(\d{1,3})', p.name, re.IGNORECASE)
         lesson = ('Aula ' + guess.group(1).zfill(2)) if guess else ''
         c.execute('''INSERT INTO study_materials
-          (relative_path,file_name,digest,size_bytes,pages,lesson,pdf_title,updated_at,status)
-          VALUES (?,?,?,?,?,?,?,?, 'Disponível')
+          (relative_path,file_name,digest,size_bytes,pages,lesson,pdf_title,updated_at,status,material_type,subject)
+          VALUES (?,?,?,?,?,?,?,?, 'Disponível',?,?)
           ON CONFLICT(relative_path) DO UPDATE SET digest=excluded.digest,
             size_bytes=excluded.size_bytes,pages=excluded.pages,
-            pdf_title=excluded.pdf_title,updated_at=excluded.updated_at,status='Disponível' ''',
-          (key, p.name, digest, size, pages, lesson, title, datetime.now().isoformat(timespec='seconds')))
+            pdf_title=excluded.pdf_title,updated_at=excluded.updated_at,status='Disponível',
+            material_type=excluded.material_type,
+            subject=COALESCE(NULLIF(study_materials.subject,''),excluded.subject) ''',
+          (key, p.name, digest, size, pages, lesson, title, datetime.now().isoformat(timespec='seconds'),material_type,auto_subject))
         found += 1
     known = c.execute('SELECT id,relative_path FROM study_materials').fetchall()
     for row in known:
@@ -114,11 +134,11 @@ def scan_pdfs(c):
 def list_materials(c):
     prepare(c)
     return all_rows(c, '''SELECT id,relative_path,file_name,size_bytes,pages,course,subject,
-               topic,lesson,pdf_title,status,updated_at FROM study_materials
+               topic,lesson,pdf_title,status,updated_at,material_type FROM study_materials
                ORDER BY status,subject,lesson,file_name LIMIT 600''')
 
 
-def assign_material(c, ident, subject='', topic='', course='', lesson=''):
+def assign_material(c, ident, subject='', topic='', course='', lesson='', material_type=None):
     prepare(c)
     if not isinstance(ident, int) or isinstance(ident, bool):
         raise ValueError('Identificador de material inválido')
@@ -126,7 +146,11 @@ def assign_material(c, ident, subject='', topic='', course='', lesson=''):
     row = c.execute('SELECT 1 FROM study_materials WHERE id=?', (ident,)).fetchone()
     if not row:
         raise ValueError('PDF não cadastrado')
-    c.execute('''UPDATE study_materials SET subject=?,topic=?,course=?,lesson=? WHERE id=?''', (*fields, ident))
+    if material_type is None:
+        c.execute('''UPDATE study_materials SET subject=?,topic=?,course=?,lesson=? WHERE id=?''', (*fields, ident))
+    else:
+        if material_type not in ('Teoria','Passo Estratégico'):raise ValueError('Tipo de material inválido')
+        c.execute('''UPDATE study_materials SET subject=?,topic=?,course=?,lesson=?,material_type=? WHERE id=?''', (*fields,material_type, ident))
     c.commit()
     return {'ok': True}
 
@@ -276,3 +300,19 @@ def import_csv(c, file_name):
 def status(c):
     return {'materials':list_materials(c),'bookmarks':list_bookmarks(c),
             'csv_files':list_csv_files()}
+
+
+def path_for_material(c,ident):
+    """Abertura local somente por ID e path sob raiz privada; nunca por caminho HTTP arbitrario."""
+    prepare(c)
+    if isinstance(ident,bool) or not isinstance(ident,int):raise ValueError('ID de PDF inválido')
+    row=c.execute("SELECT relative_path,status FROM study_materials WHERE id=?",(ident,)).fetchone()
+    if not row or row['status']!='Disponível':raise ValueError('PDF não encontrado')
+    target=PDF_ROOT / row['relative_path']
+    if target.is_symlink() or not target.is_file() or not target.resolve().is_relative_to(PDF_ROOT.resolve()):
+        raise ValueError('Caminho de PDF inválido')
+    if target.stat().st_size>MAX_PDF_SIZE:
+        raise ValueError('Arquivo inválido')
+    with target.open('rb') as check:
+        if check.read(5)!=b'%PDF-':raise ValueError('Arquivo inválido')
+    return target
