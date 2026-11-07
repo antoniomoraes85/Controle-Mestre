@@ -1,5 +1,15 @@
 # Histórico de versões — CONTROLE MESTRE
 
+## v0.6.0 — 2026-11-07 — Trilha fiscal de nove disciplinas + AnkiConnect local
+
+- Currículo inicial de nove disciplinas determinado pelo usuário, com 50 assuntos preliminares e migração aditiva.
+- Planejamento independente com prévia/confirmar, execução real e sequência teoria–questões–Passo Estratégico–revisões–erros.
+- Leitura local do AnkiConnect (versão, baralhos, contagens) com retratos idempotentes e sem escrita no FSRS, notas ou cartões.
+- Varredura de PDFs com classificação automática por pastas, preservando associações manuais anteriores.
+- 64 testes automatizados (incluindo Anki e migração) concluídos; JS validado. Homologação Windows pendente.
+- Guia: `GUIA_CONTROLE_MESTRE_V06.md`. Requisitos que exigem arquivos pessoais permanecem bloqueados.
+
+
 ## v0.5.1 — 2026-11-07 — Conectores locais iniciais e estabilidade
 
 **Implementado:**
