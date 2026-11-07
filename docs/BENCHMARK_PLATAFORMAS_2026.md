@@ -66,3 +66,11 @@ Os vídeos foram identificados por pesquisa e metadados públicos; não foram to
 - Acurácia ou ganho de aprendizagem equivalente entre produtos.
 - Acesso a API pública do Estratégia, TEC ou Qconcursos.
 - Direito de replicar conteúdos, PDFs, questões ou gráficos de terceiros num SaaS.
+
+## Benchmark complementar — soluções de IA e memorização
+| RemNote | Anotações, PDFs, flashcards e tutor IA ligados a repetição espaçada | Inspiração para fluxo anotação → questão → cartão com revisão humana | https://www.remnote.com/pt-br/ |
+| StudyFetch | Plano de estudo baseado em materiais, quiz, flashcards e tutor IA | Inspiração para organização de recursos próprios e exercícios gerados com fontes | https://www.studyfetch.com/tools |
+| SuperMemo | Repetição espaçada e API comercial específica | Benchmark de calendário individual de revisão, sem copiar algoritmo proprietário | https://www.supermemo.com/en/blog/supermemo-api-launch-the-spaced-repetition-algorithm-is-now-available-to-developers |
+| Qconcursos Raio-X | Cruza desempenho individual e incidência de temas do concurso | Benchmark para apresentar lacunas por edital com amostras auditáveis | https://folha.qconcursos.com/n/raio-x-personalizado |
+
+Esses recursos são declarados pelos fornecedores, sem avaliação comparativa independente ou validação em contas assinantes. A seleção não implica que o produto local possua essas funções.
