@@ -13,6 +13,11 @@ class LaunchTests(unittest.TestCase):
     def test_essential_files_present(self):
         self.assertFalse([p for p in launch.ESSENTIAL if not (launch.ROOT / p).is_file()])
 
+    def test_reserved_ankiconnect_port_never_selected(self):
+        self.assertNotIn(8765,launch.PORTS)
+        self.assertEqual(launch.PORTS[0],8771)
+        self.assertIn('sources.py',launch.ESSENTIAL)
+
     def test_select_free_port(self):
         with patch.object(launch, 'PORTS', (18761,)), \
              patch.object(launch, '_existing_controle_mestre', return_value=False), \
