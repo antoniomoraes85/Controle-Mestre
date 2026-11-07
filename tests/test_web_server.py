@@ -97,6 +97,29 @@ class WebServerTests(unittest.TestCase):
             'Content-Type':'application/json','Origin':self.base,'Sec-Fetch-Site':'cross-site'})
         with self.assertRaises(HTTPError) as cm:urlopen(req,timeout=5)
         self.assertEqual(cm.exception.code,403)
+    def test_adaptive_preview_read_only_and_apply(self):
+        code, data=self.call('/api/adaptive')
+        self.assertEqual(code,200)
+        self.assertIn('diagnosis',data)
+        self.assertIn('preview',data)
+        self.assertEqual(data['preview']['task_count']>0,True)
+        state=self.call('/api/overview')[1]
+        self.assertEqual(len(state['plans']),0)
+        self.assertIn('adaptive',state)
+        self.assertIn('adaptive_preview',state)
+        self.assertEqual(self.call('/api/plan/adaptive',{'week':current_week().isoformat()})[0],400)
+        code,result=self.call('/api/plan/adaptive',{'week':current_week().isoformat(),'confirm':True})
+        self.assertEqual(code,200)
+        self.assertEqual(result['mode'],'Aplicado')
+        state=self.call('/api/overview')[1]
+        self.assertEqual(result['activities'],len(state['plans']))
+        self.assertEqual(self.call('/api/plan/adaptive',{'week':current_week().isoformat(),'confirm':'true'})[0],400)
+
+    def test_adaptive_static_module_served(self):
+        with urlopen(self.base+'/modules/adaptive.js',timeout=5) as r:
+            self.assertEqual(r.status,200)
+            self.assertIn(b'adaptiveView',r.read())
+
     def test_no_path_traversal(self):
         self.assertEqual(self.call('/some/../secrets')[0],404)
 
