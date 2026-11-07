@@ -15,6 +15,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from adaptive import diagnose, preview_plan, apply_plan
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
+from sources import status as sources_status, scan_pdfs, assign_material, register_bookmark, preview_csv, import_csv
 from core import (ROOT, connect, all_rows, metric_data, subject_metrics,
                   get_days, save_day, generate_plan, add_session, add_questions,
                   DAY_CAPS, METHODS)
@@ -59,6 +60,7 @@ def overview(c, today=None):
          ROUND(AVG(progress),1) AS pct FROM topics GROUP BY subject''')
     return dict(
         today=today.isoformat(), week_start=start_iso, week_end=end_iso,
+        sources=sources_status(c),
         metrics=metrics, ranking=ranked, plans=plans, done=done, assessments=assessment_summary(c),
         adaptive=diagnose(c, today), adaptive_preview=preview_plan(c,start,today),
         weeks=weeks, sessions=sessions, question_history=qq, reviews=revisions,
@@ -72,7 +74,7 @@ def overview(c, today=None):
 
 
 class AppHandler(BaseHTTPRequestHandler):
-    server_version='ControleMestreLocal/0.5.0'
+    server_version='ControleMestreLocal/0.5.1'
     def log_message(self, fmt, *args):
         # Do not log user payloads.
         pass
@@ -104,11 +106,15 @@ class AppHandler(BaseHTTPRequestHandler):
             with_db=connect()
             try: return self._json(200,overview(with_db))
             finally: with_db.close()
+        if route=='/api/sources':
+            c=connect()
+            try:return self._json(200,sources_status(c))
+            finally:c.close()
         if route=='/api/adaptive':
             c=connect()
             try:return self._json(200,{'diagnosis':diagnose(c),'preview':preview_plan(c)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.5.0','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.5.1','mode':'private-local','multiuser':False})
         if route=='/':route='/index.html'
         static={'/index.html':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8',
                 '/app.js':'text/javascript; charset=utf-8'}
@@ -137,6 +143,20 @@ class AppHandler(BaseHTTPRequestHandler):
         route=urlsplit(self.path).path
         c=connect()
         try:
+            if route=='/api/sources/scan':
+                return self._json(200,scan_pdfs(c))
+            if route=='/api/sources/material':
+                return self._json(200,assign_material(c,args['id'], args.get('subject',''),
+                    args.get('topic',''),args.get('course',''),args.get('lesson','')))
+            if route=='/api/qconcursos/bookmark':
+                return self._json(201,register_bookmark(c,args['title'],args['url'],
+                    args.get('subject',''),args.get('topic','')))
+            if route=='/api/qconcursos/preview':
+                return self._json(200,preview_csv(c,args['file_name']))
+            if route=='/api/qconcursos/import':
+                if args.get('confirm') is not True:
+                    raise ValueError('Confirme a importação dos resultados do CSV.')
+                return self._json(200,import_csv(c,args['file_name']))
             if route=='/api/assessment/mock':
                 return self._json(201,{'ok':True,'id':insert_mock(c,args)})
             if route=='/api/assessment/essay':
@@ -207,7 +227,7 @@ class AppHandler(BaseHTTPRequestHandler):
         finally:c.close()
 
 
-def serve(host='127.0.0.1',port=8765):
+def serve(host='127.0.0.1',port=8771):
     db=connect();db.close()
     srv=ThreadingHTTPServer((host,port),AppHandler)
     url=f'http://{host}:{port}'
@@ -220,7 +240,7 @@ def serve(host='127.0.0.1',port=8765):
 if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser()
-    parser.add_argument('--port',type=int,default=8765)
+    parser.add_argument('--port',type=int,default=8771)
     opts=parser.parse_args()
     if not 1024<=opts.port<=65535:parser.error('Porta deve estar entre 1024 e 65535')
     serve(port=opts.port)
