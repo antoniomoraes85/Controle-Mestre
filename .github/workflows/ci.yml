@@ -27,3 +27,5 @@ jobs:
           node --check web/modules/http.js
           node --check web/modules/assessments.js
           node --check web/modules/adaptive.js
+          node --check web/modules/fiscal.js
+          node --check web/modules/anki_bridge.js
