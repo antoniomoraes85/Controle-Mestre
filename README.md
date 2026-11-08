@@ -16,6 +16,12 @@ O projeto retoma a plataforma anterior apresentada pelo canal **Atrator Concurso
 
 **Ainda não existe** sincronização automática com Anki, autenticação, isolamento multiusuário, aplicação hospedada segura nem cobrança de assinatura.
 
+## Organização segura e histórico sem duplicidade (v0.8.2)
+
+- [Auditoria e política de organização dos arquivos](docs/AUDITORIA_ORGANIZACAO_V082.md).
+- A seção **Questões** usa um histórico unificado dos registros antigos e detalhados; nenhum dado histórico é excluído.
+- A limpeza de arquivos locais é **separada do aplicativo**: antes de mover itens, exige prévia e confirmação do proprietário. Não elimine pastas pessoais nem bancos SQLite.
+
 ## Como executar
 
 Instale Python 3.11+ e rode:
