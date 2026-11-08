@@ -10,17 +10,12 @@ import os
 from datetime import date, datetime
 from http.client import HTTPConnection
 
-from core import all_rows, map_subject, norm
+from core import all_rows, map_subject, norm, DEFAULT_SUBJECTS
 
 HOST, PORT, API_VERSION = '127.0.0.1', 8765, 5
-ALLOWED = {'version', 'deckNamesAndIds', 'findCards'}
-MAX_DECKS, MAX_CARDS = 45, 150000
-SUBJECTS = (
-    'Contabilidade Geral', 'Contabilidade de Custos', 'Análise das Demonstrações Contábeis',
-    'Direito Tributário', 'Reforma Tributária — EC 132 e LC 214',
-    'Reforma Tributária — LC 227', 'Direito Administrativo', 'Direito Civil',
-    'Direito Constitucional',
-)
+ALLOWED = {'version', 'deckNamesAndIds', 'findCards', 'cardReviews'}
+MAX_DECKS, MAX_CARDS = 90, 150000
+SUBJECTS = tuple(name for name, _weight, _area in DEFAULT_SUBJECTS)
 
 
 def invoke(action, params=None):
@@ -107,7 +102,7 @@ def collect_snapshot(profile='Principal'):
         raise ValueError('Perfil Anki inválido (1 a 50 caracteres).')
     d=detect()
     if not d['decks']:
-        return {'profile':profile,'subjects':[],'decks':0,'warnings':['Nenhum baralho foi associado às nove disciplinas.']}
+        return {'profile':profile,'subjects':[],'decks':0,'warnings':['Nenhum baralho foi associado às disciplinas.']}
     if len(d['decks'])>MAX_DECKS:
         raise ValueError(f'Foram encontrados mais de {MAX_DECKS} baralhos relevantes; revise a árvore antes de sincronizar.')
     per={}
