@@ -19,6 +19,7 @@ import { api } from './http.js';
 let _constants = null;
 let _currentMode = 'batch'; // 'batch' | 'individual'
 let _activeBatchId = null;   // Modo B: batch aberto para adição de itens
+let _activeBatchDetails = null;
 let _subjects = [];
 let _afterSave = null;
 
@@ -35,6 +36,18 @@ export async function renderQuestionsPanel(container, subjects, afterSave = null
   _afterSave = afterSave;
   const stored = sessionStorage.getItem('cm_active_question_batch');
   _activeBatchId = stored ? Number(stored) || null : null;
+  _activeBatchDetails = null;
+  if (_activeBatchId) {
+    try {
+      const persisted = await api('questions/batch/' + _activeBatchId);
+      if (persisted.status !== 'draft' || persisted.mode !== 'individual') throw new Error('Bateria encerrada.');
+      _activeBatchDetails = persisted;
+      _currentMode = 'individual';
+    } catch (_) {
+      _activeBatchId = null;
+      sessionStorage.removeItem('cm_active_question_batch');
+    }
+  }
   const consts = await getConstants();
   container.innerHTML = `
     <section class="questions-panel" aria-label="Registro de Questões">
@@ -189,7 +202,7 @@ function _batchFormHTML(subjects, consts) {
 // ---------------------------------------------------------------------------
 function _individualFormHTML(subjects, consts) {
   const subjectOptions = (subjects || [])
-    .map(s => `<option value="${_esc(s.name)}">${_esc(s.name)}</option>`)
+    .map(s => `<option value="${_esc(s.name)}" ${_activeBatchDetails?.subject===s.name?'selected':''}>${_esc(s.name)}</option>`)
     .join('');
 
   const timingOptions = consts.gabarito_timings
@@ -276,7 +289,7 @@ function _individualFormHTML(subjects, consts) {
           </div>
           <div class="form-group">
             <label for="qi-topic">Assunto</label>
-            <input id="qi-topic" type="text" maxlength="200">
+            <input id="qi-topic" type="text" maxlength="200" value="${_esc(_activeBatchDetails?.topic||'')}">
           </div>
           <div class="form-group">
             <label for="qi-subtopic">Subassunto</label>
@@ -466,6 +479,7 @@ export async function openBatchForItems(event) {
   try {
     const result = await api('questions/batch', payload);
     _activeBatchId = result.batch_id;
+    _activeBatchDetails = payload;
     sessionStorage.setItem('cm_active_question_batch', String(_activeBatchId));
     _setFeedback(fb, 'success', `✅ Bateria #${_activeBatchId} aberta. Adicione as questões abaixo.`);
     // Re-renderiza o formulário mostrando a área de itens
@@ -565,6 +579,7 @@ export async function clearActiveBatch() {
     // Só finalizar quando os resultados individuais coincidirem com o cabeçalho.
     await api('questions/batch/finalize', {batch_id: _activeBatchId});
     _activeBatchId = null;
+    _activeBatchDetails = null;
     sessionStorage.removeItem('cm_active_question_batch');
     const container = document.querySelector('.questions-panel');
     if (container) {
