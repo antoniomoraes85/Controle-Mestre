@@ -1,3 +1,8 @@
+## v0.7.0-dev — Entrega 1: núcleo de cronogramas Fixo e por Ciclos (2026-11-07)
+
+- Novo `schedule.py` (aditivo): escala 24×72 configurável, ocorrências de indisponibilidade, ciclo contínuo por execução real, cronograma fixo, prévia/aplicação com backup, transação e versão.
+- Testes `tests/test_schedule.py` (36). Detalhes em `docs/CRONOGRAMAS_V07_ENTREGA1.md`. Sem UI/API nesta entrega.
+
 ## v0.6.2 — Correção do catálogo visível e integração inicial TEC Avançado (2026-11-07)
 
 - Corrigido bug de renderização: 125 aulas previamente cadastradas no CSV agora aparecem no painel **Materiais e TEC Concursos**, independentemente da descoberta de PDFs.
