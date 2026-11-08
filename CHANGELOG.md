@@ -1,3 +1,13 @@
+## v0.6.1 — compatibilidade com acervo externo e catálogo privado (07/11/2026)
+
+- Reconhece MATERIAL TEÓRICO como pasta irmã de CONTROLE_MESTRE, com opção de configurar caminho absoluto válido pelo painel.
+- Scanner local de PDFs por disciplinas numeradas e subpastas Teoria Principal, Teoria Simplificada/Simplificado, PASSO ESTRATÉGICO e QUESTÕES. Não altera arquivos.
+- Catálogo privado de 125 aulas, conforme listas fornecidas (8 disciplinas; Direito Civil ainda sem sumário). Não publica os sumários nem PDFs no GitHub.
+- Novas metas da trilha baseadas nas aulas do catálogo, evitando criar apenas tópicos genéricos; mantém IDs e tarefas da versão anterior.
+- Vínculo de materiais pela aula correta (Aula 00, Aula 01 - Parte II etc.), sem sugerir PDF de aula diferente por engano.
+- Testes adicionais com pastas numeradas, quatro tipos de arquivo, preservação e falta de catálogo.
+- Sem sincronização dos CSVs/Macros antigos do Anki, sem acesso ao desktop remoto, sem conclusão automática de estudo.
+
 # Histórico de versões — CONTROLE MESTRE
 
 ## v0.6.0 — 2026-11-07 — Trilha fiscal de nove disciplinas + AnkiConnect local
