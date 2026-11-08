@@ -242,6 +242,10 @@ function _individualFormHTML(subjects, consts) {
             <input id="ih-correct" type="number" min="0" max="999" required>
           </div>
           <div class="form-group">
+            <label for="ih-unanswered">Não resolvidas</label>
+            <input id="ih-unanswered" type="number" min="0" max="999" value="0">
+          </div>
+          <div class="form-group">
             <label for="ih-gabarito">Consulta ao gabarito</label>
             <select id="ih-gabarito">${timingOptions}</select>
           </div>
@@ -453,6 +457,7 @@ export async function openBatchForItems(event) {
     banca: document.getElementById('ih-banca').value,
     total: parseInt(document.getElementById('ih-total').value, 10),
     correct: parseInt(document.getElementById('ih-correct').value, 10),
+    unanswered: parseInt(document.getElementById('ih-unanswered').value || '0',10),
     gabarito_timing: document.getElementById('ih-gabarito').value,
     mode: 'individual',
     cause_counts: {},
