@@ -27,7 +27,9 @@ ESSENTIAL = ('core.py', 'web_server.py', 'assessments.py',
              'smart_reinforcement.py', 'web/modules/questions.js',
              'study_guide.py', 'study_time.py', 'bizu_seed.py', 'anki_analytics.py',
              'web/modules/study_guide.js', 'web/modules/study_time.js',
-             'web/modules/study_timer.js', 'web/modules/anki_analytics.js')
+             'web/modules/study_timer.js', 'web/modules/anki_analytics.js',
+             'assessment_insights.py', 'question_bank.py',
+             'web/modules/assessment_insights.js', 'web/modules/question_bank.js')
 
 
 def _existing_controle_mestre(port: int) -> bool:
@@ -37,7 +39,7 @@ def _existing_controle_mestre(port: int) -> bool:
             return (resp.status == 200 and info.get('ok') is True
                     and info.get('app') == 'CONTROLE MESTRE'
                     and info.get('mode') == 'private-local'
-                    and info.get('version') == '0.8.3')
+                    and info.get('version') == '0.8.4')
     except (OSError, HTTPError, URLError, ValueError, TypeError):
         return False
 
