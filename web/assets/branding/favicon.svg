@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Favicon CM">
+  <defs>
+    <linearGradient id="fav-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFEA00"/>
+      <stop offset="60%" stop-color="#FFD600"/>
+      <stop offset="100%" stop-color="#D4A017"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#101114" stroke="url(#fav-gold)" stroke-width="2.5"/>
+  
+  <!-- Brasão Simplicado de Alto Contraste -->
+  <path d="M 12,14 L 32,7 L 52,14 L 52,36 C 52,48 37,55 32,58 C 27,55 12,48 12,36 Z" fill="#1D2026" stroke="url(#fav-gold)" stroke-width="2"/>
+  
+  <!-- Rei Tombado (Silhueta Prata à direita) -->
+  <path d="M 36,44 L 50,38 L 47,33 L 34,40 Z" fill="#94A3B8"/>
+  <circle cx="51" cy="37" r="3.5" fill="#CBD5E1"/>
+
+  <!-- Peão Dourado Triunfante na Frente -->
+  <circle cx="28" cy="24" r="8.5" fill="url(#fav-gold)"/>
+  <ellipse cx="28" cy="33" rx="6.5" ry="2" fill="#FFE57F"/>
+  <path d="M 23,34 C 23,41 18,48 17,52 L 39,52 C 38,48 33,41 33,34 Z" fill="url(#fav-gold)"/>
+  <rect x="15" y="52" width="26" height="4" rx="1.5" fill="#FFE57F"/>
+
+  <!-- Espiral de Luz em Volta do Peão -->
+  <path d="M 16,46 C 24,40 38,36 41,29 C 43,24 34,20 29,22" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

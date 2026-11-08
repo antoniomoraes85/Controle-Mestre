@@ -135,13 +135,18 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.6.2','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.7.0','mode':'private-local','multiuser':False})
         if route=='/':route='/index.html'
         static={'/index.html':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8',
-                '/app.js':'text/javascript; charset=utf-8'}
-        # Só módulos existentes em diretório explícito (sem traversal ou leitura arbitrária).
+                '/app.js':'text/javascript; charset=utf-8', '/favicon.ico':'image/x-icon'}
+        # Só módulos e assets existentes em diretórios explícitos (sem traversal ou leitura arbitrária).
         if route.startswith('/modules/') and re.fullmatch(r'/modules/[a-z_]+\.js',route):
             static[route]='text/javascript; charset=utf-8'
+        elif route.startswith('/assets/branding/') and re.fullmatch(r'/assets/branding/[a-zA-Z0-9_\-\.]+',route):
+            ext=route.rsplit('.',1)[-1].lower()
+            mimes={'svg':'image/svg+xml','png':'image/png','webp':'image/webp','ico':'image/x-icon'}
+            if ext in mimes:
+                static[route]=mimes[ext]
         if route not in static:return self._json(404,{'error':'Arquivo não encontrado'})
         path=WEB / route[1:]
         if not path.is_file():return self._json(404,{'error':'Arquivo não encontrado'})
