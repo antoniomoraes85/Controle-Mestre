@@ -55,12 +55,12 @@ export async function renderQuestionsPanel(container, subjects, afterSave = null
 
       <!-- Toggle de modo -->
       <div class="mode-toggle" role="tablist" aria-label="Modo de registro">
-        <button id="btn-mode-batch" role="tab" aria-selected="true"
-                class="mode-btn mode-active" data-q-action="setMode" data-mode="batch">
+        <button id="btn-mode-batch" role="tab" aria-selected="${_currentMode==='batch'}"
+                class="mode-btn ${_currentMode==='batch'?'mode-active':''}" data-q-action="setMode" data-mode="batch">
           POR BATERIA
         </button>
-        <button id="btn-mode-individual" role="tab" aria-selected="false"
-                class="mode-btn" data-q-action="setMode" data-mode="individual">
+        <button id="btn-mode-individual" role="tab" aria-selected="${_currentMode==='individual'}"
+                class="mode-btn ${_currentMode==='individual'?'mode-active':''}" data-q-action="setMode" data-mode="individual">
           POR QUESTÃO
         </button>
       </div>
