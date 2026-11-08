@@ -48,6 +48,12 @@ class HeroBrandingTests(unittest.TestCase):
         self.assertNotIn("https://", self.scene)
         self.assertNotIn("<script", self.scene)
 
+    def test_launcher_targets_the_new_build(self):
+        launch = (ROOT / "launch.py").read_text(encoding="utf-8")
+        server = (ROOT / "web_server.py").read_text(encoding="utf-8")
+        self.assertIn("info.get('build') == 'hero-duel-metal-1'", launch)
+        self.assertIn("'build':'hero-duel-metal-1'", server)
+
     def test_svg_wordmarks_are_valid_and_metallic(self):
         for name in ("logo_horizontal_premium.svg", "logo_vertical_premium.svg", "logo_sidebar.svg"):
             with self.subTest(asset=name):
