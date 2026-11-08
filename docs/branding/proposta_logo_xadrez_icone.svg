@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Controle Mestre: peão supera o rei no xadrez">
+<title>Controle Mestre — Peão e Rei</title>
+<rect x="4" y="4" width="248" height="248" rx="56" fill="#111418" stroke="#C9FA27" stroke-width="7"/>
+<path d="M32 211H224" stroke="#4A5560" stroke-width="3" stroke-linecap="round"/>
+<path d="M148 191l58-18" stroke="#C9FA27" stroke-width="5" stroke-linecap="round" opacity=".6"/>
+<g transform="translate(170 137) rotate(74)" stroke-linejoin="round">
+<path d="M-10-43h20l12 20-4 12-35 0-5-12z" fill="#E9EDF1" stroke="#111418" stroke-width="5"/>
+<path d="M-17-12h34l-5 17c11 12 18 28 19 45H-31C-30 33-22 17-12 5z" fill="#A9B3BF" stroke="#111418" stroke-width="5"/>
+<rect x="-35" y="47" width="70" height="13" rx="5" fill="#E9EDF1" stroke="#111418" stroke-width="4"/>
+<rect x="-39" y="60" width="78" height="13" rx="4" fill="#B8C1CA" stroke="#111418" stroke-width="4"/>
+<path d="M0-67v27M-13-56h26" stroke="#EFB94A" stroke-width="9" stroke-linecap="round"/>
+</g>
+<g fill="#C9FA27" stroke="#111418" stroke-width="5" stroke-linejoin="round">
+<circle cx="81" cy="77" r="22"/>
+<path d="M63 97H99L94 115c13 12 20 31 22 52H46c2-21 9-40 22-52Z"/>
+<rect x="45" y="158" width="73" height="17" rx="8"/>
+<rect x="35" y="172" width="94" height="21" rx="9"/>
+</g>
+<path d="M136 104l14-7M142 118l15-2" stroke="#C9FA27" stroke-width="5" stroke-linecap="round"/>
+</svg>
