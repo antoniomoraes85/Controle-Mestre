@@ -9,6 +9,7 @@ from collections import defaultdict
 
 from core import all_rows, connect, get_days, norm, parse_day
 from sources import prepare as sources_prepare
+from lesson_catalog import lessons as listed_lessons
 
 TRACK_ID = 'base_rs_sc_2026'
 # Fonte: editais AFRE/RS 2018 (Cebraspe) e AFRE/SC 2018 (FCC), em suas partes comuns.
@@ -76,6 +77,19 @@ def _ensure_topics(c):
                 (track_id,subject,title,subject_order,topic_order) VALUES(?,?,?,?,?)""",
                 (TRACK_ID,subject,title,order,idx))
             inserted+=cur.rowcount
+    # Aulas realmente fornecidas pelo titular substituem a curadoria genérica
+    # nas próximas prévias; tópicos antigos continuam para preservar histórico.
+    lessons=listed_lessons()
+    by_subject={name:order for name,order,_ in SEED}
+    for idx,row in enumerate(lessons,1):
+        title=row['aula']+' — '+row['assunto']
+        if c.execute('SELECT 1 FROM fiscal_topics WHERE track_id=? AND subject=? AND title=?',
+                     (TRACK_ID,row['disciplina'],title)).fetchone():continue
+        cur=c.execute("""INSERT OR IGNORE INTO fiscal_topics
+            (track_id,subject,title,subject_order,topic_order,origin)
+            VALUES(?,?,?,?,?,'Catálogo de aulas informado pelo titular')""",
+            (TRACK_ID,row['disciplina'],title,by_subject[row['disciplina']],idx))
+        inserted+=cur.rowcount
     if inserted:c.commit()
     return inserted
 
@@ -107,13 +121,25 @@ def _recorded(c, start, end):
 
 
 def _subject_materials(c, subject, topic, kind):
-    # Somente arquivos vinculados manualmente a disciplina/assunto, sem adivinhar pagina.
-    source_type = 'Passo Estratégico' if kind=='Passo Estratégico' else 'Teoria'
-    candidates=all_rows(c, '''SELECT id,file_name,lesson,relative_path,topic,subject,material_type
-      FROM study_materials WHERE status='Disponível' AND subject=? AND material_type=?
-      ORDER BY CASE WHEN topic=? THEN 0 WHEN TRIM(topic)='' THEN 1 ELSE 2 END, id LIMIT 50''',
-      (subject,source_type,topic))
-    return [x for x in candidates if not x['topic'] or norm(x['topic'])==norm(topic)][:3]
+    """Vincular PDFs à AULA correta, não ao primeiro PDF solto da disciplina."""
+    if kind=='Passo Estratégico':types=('Passo Estratégico',)
+    elif kind in ('Questões de fixação','Revisão por questões','Caderno de erros'):
+        types=('Questões',)
+    else:types=('Teoria','Simplificado')
+    requested=topic.split(' — ',1)[0] if topic.startswith('Aula ') else ''
+    candidates=all_rows(c,'''SELECT id,file_name,lesson,relative_path,topic,subject,material_type
+      FROM study_materials WHERE status='Disponível' AND subject=?
+      ORDER BY id LIMIT 500''',(subject,))
+    eligible=[]
+    for item in candidates:
+        if item['material_type'] not in types:continue
+        if requested:
+            if norm(item['lesson'])!=norm(requested):continue
+        elif not item['topic'] or norm(item['topic'])!=norm(topic):
+            continue
+        eligible.append(item)
+    eligible.sort(key=lambda x:(types.index(x['material_type']),x['id']))
+    return eligible[:3]
 
 
 def status(c, today=None, week_start=None):
@@ -153,6 +179,8 @@ def preview_week(c,week_start=None,today=None):
     if not c.execute('SELECT 1 FROM fiscal_tracks WHERE id=?',(TRACK_ID,)).fetchone():
         raise ValueError('Ative primeiro a Trilha Fiscal RS+SC.')
     _ensure_topics(c)
+    if not listed_lessons():
+        raise ValueError('Catálogo local de aulas ausente. Copie dados/catalogo/aulas_primeiro_ciclo.csv para usar o planejamento por aulas.')
     ws=_week(week_start);end=ws+timedelta(days=6)
     cur=date.fromisoformat(parse_day(today or date.today()))
     if ws+timedelta(days=6)<cur:
@@ -174,7 +202,9 @@ def preview_week(c,week_start=None,today=None):
                      (ws.isoformat(),end.isoformat())).fetchone()[0]
     available=min(max(0,target-int(actual)),sum(allocations.values()))
     candidates=[]
-    topics=all_rows(c,'SELECT id,subject,title,subject_order,topic_order FROM fiscal_topics WHERE track_id=? ORDER BY subject_order,topic_order',(TRACK_ID,))
+    topics=all_rows(c,'''SELECT id,subject,title,subject_order,topic_order
+         FROM fiscal_topics WHERE track_id=? AND origin='Catálogo de aulas informado pelo titular'
+         ORDER BY subject_order,topic_order''',(TRACK_ID,))
     by_subject=defaultdict(list)
     enabled={row[0] for row in SEED}
     for x in topics:
@@ -223,7 +253,7 @@ def preview_week(c,week_start=None,today=None):
             'available_for_trail_minutes':available,'planned_minutes':spent,
             'unallocated_minutes':max(0,available-spent),
             'tasks':planned,'task_count':len(planned),
-            'note':'Metas por assunto com tempos estimados; atividades de erros só após erros registrados. Revisões seguem a sequência da trilha.'}
+            'note':'Metas baseadas nas aulas do seu catálogo privado, com tempos estimados; estudo dos erros só após erros registrados. Não significa aula concluída.'}
 
 
 def apply_week(c,week_start=None,confirm=False,today=None):
