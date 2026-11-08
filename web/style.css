@@ -168,3 +168,31 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .section-hint{font-size:11px;color:#8e95a2;margin:0 0 12px}
 
 @media(max-width:620px){.form-grid{grid-template-columns:1fr}.causes-grid{grid-template-columns:1fr}.result-buttons{flex-direction:column}.mode-toggle{width:100%}.mode-btn{flex:1;text-align:center}}
+
+
+/* Cronômetro e gráficos de horas da v0.8.3 */
+.timer-subject-label{display:flex;flex-direction:column;gap:3px;font-size:9px;
+  color:#d9dce4;font-weight:700;min-width:140px;max-width:185px}
+.timer-subject-label select{color:#f9fafb;background:#20252e;border:1px solid #434957;
+  border-radius:6px;padding:5px 7px;font-size:10px;width:100%}
+.timer-subject-label select:disabled{opacity:.6}
+.cm-time-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+.cm-time-stats .panel-content{padding:16px}
+.cm-time-stats small{font-size:12px;color:#a9b2c1}
+.cm-time-stats h2{margin:6px 0 0;color:#f4d332}
+.cm-time-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:15px 0}
+.cm-time-list{max-height:480px;overflow-y:auto}
+.cm-time-row{display:grid;grid-template-columns:44px minmax(0,1fr) 55px;
+  gap:6px;align-items:center;margin:8px 0;font-size:10px}
+.cm-time-row b{text-align:right;font-weight:700;color:#f4d332}
+.cm-time-label{color:#c9d1dd}
+.cm-time-track{height:10px;border-radius:6px;background:#292f39;overflow:hidden}
+.cm-time-track>span{height:100%;display:block;background:#e1b820;min-width:0;border-radius:6px}
+@media(max-width:1180px){
+  .cm-time-grid{grid-template-columns:1fr}
+  .cm-time-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:720px){
+  .timer-subject-label{min-width:100px;max-width:110px}
+  .cm-time-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

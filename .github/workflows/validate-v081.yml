@@ -1,0 +1,37 @@
+name: CONTROLE MESTRE - Validacao da integracao v0.8.1
+on:
+  push:
+    branches:
+      - feat/integra-erros-reforcos-v081
+      - chore/organizacao-segura-historico-v082
+      - feat/guia-edital-anki-diagnostico-v083
+  pull_request:
+    branches:
+      - feat/cronogramas-identidade-v07
+      - chore/organizacao-segura-historico-v082
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Testes Python da suite completa
+        run: python -m unittest discover -s tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Sintaxe de todos os modulos ES atualizados
+        run: |
+          node --check web/app.js
+          node --check web/modules/questions.js
+          node --check web/modules/adaptive.js
+          node --check web/modules/study_timer.js
+          node --check web/modules/study_time.js
+          node --check web/modules/study_guide.js
+          node --check web/modules/anki_analytics.js

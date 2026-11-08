@@ -14,7 +14,12 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from anki_bridge import local_status as anki_status, detect as anki_detect, collect_snapshot as anki_collect, save_snapshot as anki_save
+from study_guide import read as study_read, create as study_create, import_rows as study_import, save_entry as study_save_entry, progress as study_progress
+from bizu_seed import rows as bizu_rows, provenance as bizu_provenance
+from study_time import report as study_time_report, save as study_time_save
+from anki_analytics import collect as anki_review_collect, save as anki_review_save, report as anki_review_report
 from adaptive import diagnose, preview_plan, apply_plan
+from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
 from sources import status as sources_status, scan_pdfs, assign_material, register_bookmark, register_tec_bookmark, preview_csv, import_csv, set_external_root, path_for_material
 from fiscal_path import status as fiscal_status, activate as fiscal_activate, preview_week as fiscal_preview_week, apply_week as fiscal_apply_week, complete_task as fiscal_complete_task
@@ -24,7 +29,7 @@ from core import (ROOT, connect, all_rows, metric_data, subject_metrics,
 from error_tracking import (
     register_batch, register_question_item, get_batch,
     get_error_summary, get_caderno_erros, update_item_correction,
-    feed_performance, ERROR_CAUSES, ITEM_RESULTS, ITEM_DIFFICULTIES,
+    feed_performance, finalize_batch, ERROR_CAUSES, ITEM_RESULTS, ITEM_DIFFICULTIES,
     CORRECTION_STATUSES, GABARITO_TIMINGS,
 )
 
@@ -71,6 +76,7 @@ def overview(c, today=None):
         sources=sources_status(c), fiscal=fiscal_status(c,today), anki_live=anki_status(c),
         metrics=metrics, ranking=ranked, plans=plans, done=done, assessments=assessment_summary(c),
         adaptive=diagnose(c, today), adaptive_preview=preview_plan(c,start,today),
+        reinforcements=recommend_reinforcements(c,today),
         weeks=weeks, sessions=sessions, question_history=qq, reviews=revisions,
         anki=anki, topic_progress=progress,
         cycles=all_rows(c, 'SELECT subject,cycle,ROUND(SUM(minutes),0) AS minutes FROM sessions WHERE cycle IS NOT NULL GROUP BY subject,cycle ORDER BY cycle,subject'),
@@ -118,6 +124,36 @@ class AppHandler(BaseHTTPRequestHandler):
             c=connect()
             try:return self._json(200,sources_status(c))
             finally:c.close()
+        if route=='/api/study-time':
+            c=connect()
+            try:return self._json(200,study_time_report(c))
+            finally:c.close()
+        if route=='/api/study-guide':
+            c=connect()
+            try:return self._json(200,study_read(c))
+            finally:c.close()
+        if route=='/api/study-guide/preset':
+            # Envia apenas metadados factuais de incidências, nunca os PDFs.
+            return self._json(200,{'rows':bizu_rows(),'provenance':bizu_provenance()})
+        if route=='/api/anki/analytics':
+            c=connect()
+            try:return self._json(200,anki_review_report(c))
+            finally:c.close()
+        if route=='/api/anki/diagnostics':
+            import socket
+            result={'host':'127.0.0.1','port':8765,'port_open':False,
+                    'api_connected':False,'api_version':None,'message':''}
+            try:
+                with socket.create_connection(('127.0.0.1',8765),timeout=3):
+                    result['port_open']=True
+                info=anki_detect()
+                result.update({'api_connected':True,'api_version':info['version'],
+                               'selected_decks':info['selected_decks'],
+                               'all_decks':info['all_decks'],
+                               'message':'AnkiConnect respondeu à plataforma local. API 5 é compatível com complemento AnkiConnect v6.'})
+            except (OSError,ValueError) as exc:
+                result['message']=str(exc)[:250]
+            return self._json(200,result)
         if route=='/api/anki/check':
             try:return self._json(200,anki_detect())
             except ValueError as exc:return self._json(503,{'error':str(exc)})
@@ -141,8 +177,33 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.7.0','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.3','mode':'private-local','multiuser':False})
         # --- Rastreamento de erros ---
+        if route=='/api/questions/drafts':
+            c=connect()
+            try:
+                drafts=all_rows(c, """SELECT id,day,subject,topic,total,correct,unanswered,mode,status,
+                    (SELECT COUNT(*) FROM question_items qi WHERE qi.batch_id=qb.id) AS items_added
+                    FROM question_batches qb WHERE status='draft' AND mode='individual'
+                    ORDER BY created_at DESC, id DESC LIMIT 100""")
+                return self._json(200,{'items':drafts})
+            finally:c.close()
+        if route=='/api/questions/history':
+            c=connect()
+            try:
+                # Uma fonte de verdade: 'questions' agrega registros antigos e
+                # detalhados; os metadados de batches são opcionais.
+                rows=all_rows(c, """SELECT q.id,q.day,q.subject,q.topic,
+                    q.platform,q.bank AS banca,q.total,q.correct,
+                    COALESCE(qb.unanswered,0) AS unanswered,
+                    qb.mode AS mode,COALESCE(qb.status,'legacy') AS status,
+                    qb.id AS batch_id
+                    FROM questions q
+                    LEFT JOIN question_batches qb ON qb.legacy_question_id=q.id
+                        AND qb.status='finalized'
+                    ORDER BY q.day DESC,q.id DESC LIMIT 200""")
+                return self._json(200,{'items':rows})
+            finally:c.close()
         if route=='/api/questions/caderno':
             c=connect()
             try:
@@ -209,6 +270,23 @@ class AppHandler(BaseHTTPRequestHandler):
         route=urlsplit(self.path).path
         c=connect()
         try:
+            if route=='/api/study-time/save':
+                return self._json(200,study_time_save(c,args))
+            if route=='/api/study-guide/create':
+                return self._json(201,study_create(c,args.get('title','Preparação SEFAZ-RS'),args.get('weekly_hours',25)))
+            if route=='/api/study-guide/preset':
+                return self._json(200,study_import(c,int(args['guide_id']),bizu_rows(),
+                    confirm=args.get('confirm') is True))
+            if route=='/api/study-guide/entry':
+                return self._json(201,study_save_entry(c,int(args['guide_id']),args))
+            if route=='/api/study-guide/progress':
+                return self._json(200,study_progress(c,int(args['guide_id']),int(args['entry_id']),
+                    args['status'],args['progress']))
+            if route=='/api/anki/analytics/sync':
+                if args.get('confirm') is not True:
+                    raise ValueError('Confirme para ler as respostas do Anki.')
+                result=anki_review_collect(args.get('profile','Principal'))
+                return self._json(200,anki_review_save(c,result))
             if route=='/api/anki/sync':
                 if args.get('confirm') is not True:raise ValueError('Confirmação explícita necessária para sincronizar.')
                 snap=anki_collect(args.get('profile','Principal'))
@@ -320,13 +398,15 @@ class AppHandler(BaseHTTPRequestHandler):
                     mode=str(args.get('mode','batch')),
                     cause_counts=args.get('cause_counts') or {},
                     notes=str(args.get('notes',''))[:500],
+                    request_id=str(args.get('request_id',''))[:100] or None,
                 )
-                perf=feed_performance(c,bid)
-                add_questions(c,perf['day'],perf['subject'],perf['topic'],
-                    perf['total'],perf['correct'],
-                    str(args.get('banca',''))[:80],str(args.get('platform',''))[:80],
-                    '','Registrado via error_tracking')
-                return self._json(201,{'ok':True,'batch_id':bid,'performance':perf})
+                if str(args.get('mode','batch')) == 'batch':
+                    perf=finalize_batch(c,bid)
+                    return self._json(201,{'ok':True,'batch_id':bid,'status':'finalized','performance':perf})
+                return self._json(201,{'ok':True,'batch_id':bid,'status':'draft'})
+            if route=='/api/questions/batch/finalize':
+                perf=finalize_batch(c,int(args['batch_id']))
+                return self._json(200,{'ok':True,'status':'finalized','performance':perf})
             if route=='/api/questions/item':
                 bid=int(args['batch_id'])
                 iid=register_question_item(c,

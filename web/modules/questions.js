@@ -19,6 +19,9 @@ import { api } from './http.js';
 let _constants = null;
 let _currentMode = 'batch'; // 'batch' | 'individual'
 let _activeBatchId = null;   // Modo B: batch aberto para adição de itens
+let _activeBatchDetails = null;
+let _subjects = [];
+let _afterSave = null;
 
 async function getConstants() {
   if (!_constants) _constants = await api('questions/constants');
@@ -28,7 +31,34 @@ async function getConstants() {
 // ---------------------------------------------------------------------------
 // Render principal — painel de registro
 // ---------------------------------------------------------------------------
-export async function renderQuestionsPanel(container, subjects) {
+export async function renderQuestionsPanel(container, subjects, afterSave = null) {
+  _subjects = subjects || [];
+  _afterSave = afterSave;
+  const stored = sessionStorage.getItem('cm_active_question_batch');
+  _activeBatchId = stored ? Number(stored) || null : null;
+  _activeBatchDetails = null;
+  if (_activeBatchId) {
+    try {
+      const persisted = await api('questions/batch/' + _activeBatchId);
+      if (persisted.status !== 'draft' || persisted.mode !== 'individual') throw new Error('Bateria encerrada.');
+      _activeBatchDetails = persisted;
+      _currentMode = 'individual';
+    } catch (_) {
+      _activeBatchId = null;
+      sessionStorage.removeItem('cm_active_question_batch');
+    }
+  }
+  let draftItems = [];
+  try {
+    draftItems = (await api('questions/drafts')).items || [];
+    if (!_activeBatchId && draftItems.length) {
+      const recent = draftItems[0];
+      _activeBatchId = recent.id;
+      _activeBatchDetails = recent;
+      _currentMode = 'individual';
+      sessionStorage.setItem('cm_active_question_batch', String(recent.id));
+    }
+  } catch (_) { /* Compatibilidade com versões anteriores da API. */ }
   const consts = await getConstants();
   container.innerHTML = `
     <section class="questions-panel" aria-label="Registro de Questões">
@@ -36,22 +66,50 @@ export async function renderQuestionsPanel(container, subjects) {
 
       <!-- Toggle de modo -->
       <div class="mode-toggle" role="tablist" aria-label="Modo de registro">
-        <button id="btn-mode-batch" role="tab" aria-selected="true"
-                class="mode-btn mode-active" onclick="questionsModule.setMode('batch')">
+        <button id="btn-mode-batch" role="tab" aria-selected="${_currentMode==='batch'}"
+                class="mode-btn ${_currentMode==='batch'?'mode-active':''}" data-q-action="setMode" data-mode="batch">
           POR BATERIA
         </button>
-        <button id="btn-mode-individual" role="tab" aria-selected="false"
-                class="mode-btn" onclick="questionsModule.setMode('individual')">
+        <button id="btn-mode-individual" role="tab" aria-selected="${_currentMode==='individual'}"
+                class="mode-btn ${_currentMode==='individual'?'mode-active':''}" data-q-action="setMode" data-mode="individual">
           POR QUESTÃO
         </button>
       </div>
 
+      <div class="info-box" style="margin:12px 0">
+        <b>Histórico salvo:</b> todas as baterias finalizadas são registradas no SQLite local.
+        Rascunhos podem ser retomados após fechar o navegador.
+      </div>
+      ${draftItems.length ? `<div class="panel-content" style="margin-bottom:12px"><strong>Rascunhos recuperáveis</strong>
+        ${draftItems.map(item => `<button type="button" class="btn-secondary" style="margin:4px"
+        data-q-action="resume" data-batch-id="${item.id}">#${item.id} — ${_esc(item.subject)} (${item.items_added}/${item.total})</button>`).join('')}</div>` : ''}
       <div id="questions-form-area"></div>
       <div id="questions-feedback" class="feedback-area" aria-live="polite"></div>
     </section>
   `;
 
   _renderModeForm(container, subjects, consts);
+  container.addEventListener('click', event => {
+    const btn = event.target.closest('[data-q-action]');
+    if (!btn) return;
+    const action = btn.dataset.qAction;
+    if (action === 'setMode') setMode(btn.dataset.mode);
+    else if (action === 'pickResult') pickResult(btn);
+    else if (action === 'finalizeBatch') clearActiveBatch();
+    else if (action === 'resume') resumeBatch(Number(btn.dataset.batchId));
+  });
+  container.addEventListener('submit', event => {
+    const form = event.target.closest('[data-q-form]');
+    if (!form) return;
+    event.preventDefault();
+    if (form.dataset.qForm === 'batch') submitBatch(event);
+    else if (form.dataset.qForm === 'header') openBatchForItems(event);
+    else if (form.dataset.qForm === 'item') submitItem(event);
+  });
+  container.addEventListener('change', event => {
+    const select = event.target.closest('[data-q-change="correction"]');
+    if (select) updateCorrection(select);
+  });
 }
 
 function _renderModeForm(container, subjects, consts) {
@@ -84,7 +142,7 @@ function _batchFormHTML(subjects, consts) {
     .map(t => `<option value="${_esc(t)}">${_esc(t)}</option>`).join('');
 
   return `
-    <form id="form-batch" class="register-form" onsubmit="questionsModule.submitBatch(event)">
+    <form id="form-batch" class="register-form" data-q-form="batch">
       <div class="form-grid">
         <div class="form-group">
           <label for="b-subject">Disciplina *</label>
@@ -163,7 +221,7 @@ function _batchFormHTML(subjects, consts) {
 // ---------------------------------------------------------------------------
 function _individualFormHTML(subjects, consts) {
   const subjectOptions = (subjects || [])
-    .map(s => `<option value="${_esc(s.name)}">${_esc(s.name)}</option>`)
+    .map(s => `<option value="${_esc(s.name)}" ${_activeBatchDetails?.subject===s.name?'selected':''}>${_esc(s.name)}</option>`)
     .join('');
 
   const timingOptions = consts.gabarito_timings
@@ -172,7 +230,7 @@ function _individualFormHTML(subjects, consts) {
   const activeBatchNote = _activeBatchId
     ? `<div class="active-batch-note">
          📋 Bateria ativa: <strong>#${_activeBatchId}</strong>
-         <button type="button" class="btn-link" onclick="questionsModule.clearActiveBatch()">
+         <button type="button" class="btn-link" data-q-action="finalizeBatch">
            Encerrar e iniciar nova
          </button>
        </div>`
@@ -185,7 +243,7 @@ function _individualFormHTML(subjects, consts) {
     <details class="batch-header-collapsible" ${_activeBatchId ? '' : 'open'}>
       <summary>📋 Dados da bateria (preencha antes de lançar questões)</summary>
       <form id="form-batch-header" class="register-form"
-            onsubmit="questionsModule.openBatchForItems(event)">
+            data-q-form="header">
         <div class="form-grid">
           <div class="form-group">
             <label for="ih-subject">Disciplina *</label>
@@ -216,6 +274,10 @@ function _individualFormHTML(subjects, consts) {
             <input id="ih-correct" type="number" min="0" max="999" required>
           </div>
           <div class="form-group">
+            <label for="ih-unanswered">Não resolvidas</label>
+            <input id="ih-unanswered" type="number" min="0" max="999" value="0">
+          </div>
+          <div class="form-group">
             <label for="ih-gabarito">Consulta ao gabarito</label>
             <select id="ih-gabarito">${timingOptions}</select>
           </div>
@@ -234,7 +296,7 @@ function _individualFormHTML(subjects, consts) {
         Marque cada questão rapidamente. Campos opcionais permanecem opcionais.
       </p>
       <form id="form-item" class="register-form"
-            onsubmit="questionsModule.submitItem(event)">
+            data-q-form="item">
         <div class="form-grid">
           <div class="form-group">
             <label for="qi-ref">ID/Ref. da questão</label>
@@ -246,7 +308,7 @@ function _individualFormHTML(subjects, consts) {
           </div>
           <div class="form-group">
             <label for="qi-topic">Assunto</label>
-            <input id="qi-topic" type="text" maxlength="200">
+            <input id="qi-topic" type="text" maxlength="200" value="${_esc(_activeBatchDetails?.topic||'')}">
           </div>
           <div class="form-group">
             <label for="qi-subtopic">Subassunto</label>
@@ -261,7 +323,7 @@ function _individualFormHTML(subjects, consts) {
             ${consts.results.map(r => `
               <button type="button" class="result-btn result-${_resultClass(r)}"
                       data-result="${_esc(r)}"
-                      onclick="questionsModule.pickResult(this)">
+                      data-q-action="pickResult">
                 ${_resultIcon(r)} ${_esc(r)}
               </button>
             `).join('')}
@@ -332,7 +394,7 @@ function _individualFormHTML(subjects, consts) {
       <div id="items-list" class="items-list"></div>
 
       <div class="form-actions form-actions-end">
-        <button type="button" class="btn-secondary" onclick="questionsModule.clearActiveBatch()">
+        <button type="button" class="btn-secondary" data-q-action="finalizeBatch">
           ✅ Concluir bateria
         </button>
       </div>
@@ -343,6 +405,29 @@ function _individualFormHTML(subjects, consts) {
 // ---------------------------------------------------------------------------
 // Handlers de eventos — toggle de modo
 // ---------------------------------------------------------------------------
+export async function resumeBatch(batchId) {
+  try {
+    const batch = await api('questions/batch/' + batchId);
+    if (batch.status !== 'draft' || batch.mode !== 'individual') throw new Error('Rascunho indisponível');
+    _activeBatchId = batchId;
+    _activeBatchDetails = batch;
+    _currentMode = 'individual';
+    sessionStorage.setItem('cm_active_question_batch',String(batchId));
+    const consts = await getConstants();
+    const container = document.querySelector('.questions-panel');
+    if (container) {
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        const active = btn.dataset.mode === 'individual';
+        btn.classList.toggle('mode-active',active);
+        btn.setAttribute('aria-selected',String(active));
+      });
+      _renderModeForm(container.parentElement,_subjects,consts);
+    }
+  } catch (error) {
+    _setFeedback(document.getElementById('questions-feedback'),'error',error.message);
+  }
+}
+
 export function setMode(mode) {
   _currentMode = mode;
   document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -352,7 +437,7 @@ export function setMode(mode) {
   const container = document.querySelector('.questions-panel');
   if (container) {
     getConstants().then(consts => {
-      const subjects = window._cm_subjects || [];
+      const subjects = _subjects;
       _renderModeForm(container.parentElement, subjects, consts);
     });
   }
@@ -372,7 +457,10 @@ export async function submitBatch(event) {
     if (qty > 0) causeCounts[inp.dataset.cause] = qty;
   });
 
+  const form = document.getElementById('form-batch');
+  form.dataset.requestId ||= crypto.randomUUID();
   const payload = {
+    request_id: form.dataset.requestId,
     subject: document.getElementById('b-subject').value,
     topic: document.getElementById('b-topic').value,
     day: document.getElementById('b-day').value,
@@ -396,8 +484,10 @@ export async function submitBatch(event) {
     _setFeedback(fb, 'success',
       `✅ Bateria #${result.batch_id} registrada — `
       + `${result.performance?.correct}/${result.performance?.total} acertos${pct}.`);
+    delete form.dataset.requestId;
     document.getElementById('form-batch').reset();
     document.getElementById('b-day').value = _today();
+    if (_afterSave) await _afterSave();
   } catch (err) {
     _setFeedback(fb, 'error', `❌ ${err.message}`);
   }
@@ -411,7 +501,10 @@ export async function openBatchForItems(event) {
   const fb = document.getElementById('questions-feedback');
   _setFeedback(fb, 'info', 'Criando bateria…');
 
+  const form = document.getElementById('form-batch-header');
+  form.dataset.requestId ||= crypto.randomUUID();
   const payload = {
+    request_id: form.dataset.requestId,
     subject: document.getElementById('ih-subject').value,
     topic: document.getElementById('ih-topic').value,
     day: document.getElementById('ih-day').value,
@@ -419,6 +512,7 @@ export async function openBatchForItems(event) {
     banca: document.getElementById('ih-banca').value,
     total: parseInt(document.getElementById('ih-total').value, 10),
     correct: parseInt(document.getElementById('ih-correct').value, 10),
+    unanswered: parseInt(document.getElementById('ih-unanswered').value || '0',10),
     gabarito_timing: document.getElementById('ih-gabarito').value,
     mode: 'individual',
     cause_counts: {},
@@ -427,12 +521,14 @@ export async function openBatchForItems(event) {
   try {
     const result = await api('questions/batch', payload);
     _activeBatchId = result.batch_id;
+    _activeBatchDetails = payload;
+    sessionStorage.setItem('cm_active_question_batch', String(_activeBatchId));
     _setFeedback(fb, 'success', `✅ Bateria #${_activeBatchId} aberta. Adicione as questões abaixo.`);
     // Re-renderiza o formulário mostrando a área de itens
     const container = document.querySelector('.questions-panel');
     if (container) {
       const consts = await getConstants();
-      _renderModeForm(container.parentElement, window._cm_subjects || [], consts);
+      _renderModeForm(container.parentElement, _subjects, consts);
     }
   } catch (err) {
     _setFeedback(fb, 'error', `❌ ${err.message}`);
@@ -519,11 +615,23 @@ export function pickResult(btn) {
 // Handler — Encerrar bateria ativa
 // ---------------------------------------------------------------------------
 export async function clearActiveBatch() {
-  _activeBatchId = null;
-  const container = document.querySelector('.questions-panel');
-  if (container) {
-    const consts = await getConstants();
-    _renderModeForm(container.parentElement, window._cm_subjects || [], consts);
+  if (!_activeBatchId) return;
+  const feedback = document.getElementById('questions-feedback');
+  try {
+    // Só finalizar quando os resultados individuais coincidirem com o cabeçalho.
+    await api('questions/batch/finalize', {batch_id: _activeBatchId});
+    _activeBatchId = null;
+    _activeBatchDetails = null;
+    sessionStorage.removeItem('cm_active_question_batch');
+    const container = document.querySelector('.questions-panel');
+    if (container) {
+      const consts = await getConstants();
+      _renderModeForm(container.parentElement, _subjects, consts);
+    }
+    _setFeedback(feedback, 'success', 'Bateria finalizada e contabilizada uma única vez.');
+    if (_afterSave) await _afterSave();
+  } catch (error) {
+    _setFeedback(feedback, 'error', error.message);
   }
 }
 
@@ -531,6 +639,10 @@ export async function clearActiveBatch() {
 // Caderno de Erros — visualização
 // ---------------------------------------------------------------------------
 export async function renderCaderno(container, filters = {}) {
+  container.addEventListener('change', event => {
+    const select = event.target.closest('[data-q-change="correction"]');
+    if (select) updateCorrection(select);
+  }, {once:false});
   container.innerHTML = '<p class="loading">Carregando caderno de erros…</p>';
   try {
     const params = new URLSearchParams();
@@ -565,7 +677,7 @@ export async function renderCaderno(container, filters = {}) {
               <td>${_esc(it.difficulty || '—')}</td>
               <td>
                 <select class="correction-select" data-id="${it.id}"
-                        onchange="questionsModule.updateCorrection(this)">
+                        data-q-change="correction">
                   <option ${it.correction_status === 'Aberto' ? 'selected' : ''}>Aberto</option>
                   <option ${it.correction_status === 'Corrigida' ? 'selected' : ''}>Corrigida</option>
                   <option ${it.correction_status === 'Revisada' ? 'selected' : ''}>Revisada</option>
@@ -593,6 +705,29 @@ export async function updateCorrection(select) {
   }
 }
 
+export async function renderQuestionHistory(container) {
+  container.innerHTML = '<p class="loading">Carregando histórico salvo…</p>';
+  try {
+    const data = await api('questions/history');
+    const rows = data.items || [];
+    if (!rows.length) {
+      container.innerHTML = '<p class="subtitle">Nenhum registro de questões ainda. As próximas baterias concluídas aparecerão aqui e permanecerão no seu banco local.</p>';
+      return;
+    }
+    container.innerHTML = `<div class="table-wrap"><table class="act-table">
+    <thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Plataforma</th><th>Questões</th><th>Acertos</th><th>Rendimento</th><th>Modo</th></tr></thead>
+    <tbody>${rows.map(row => `<tr>
+      <td>${_esc(row.day)}</td><td>${_esc(row.subject)}</td><td>${_esc(row.topic||'—')}</td>
+      <td>${_esc(row.platform||'—')}</td><td>${Number(row.total)}</td><td>${Number(row.correct)}</td>
+      <td>${row.total ? (100*Number(row.correct)/Number(row.total)).toFixed(1).replace('.',',')+'%' : '—'}</td>
+      <td>${_esc(row.mode==='individual'?'Por questão':row.mode==='batch'?'Por bateria':'Registro anterior')}</td>
+    </tr>`).join('')}</tbody></table></div>
+    <p class="period-caption">Até 200 registros recentes, incluindo lançamentos anteriores e baterias detalhadas. O histórico completo permanece salvo no banco local.</p>`;
+  } catch(error) {
+    container.textContent = 'Histórico não disponível: '+error.message;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Utilitários internos
 // ---------------------------------------------------------------------------
@@ -603,7 +738,11 @@ function _esc(str) {
 }
 
 function _today() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function _resultClass(result) {
