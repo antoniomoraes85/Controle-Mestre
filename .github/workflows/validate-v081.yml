@@ -5,6 +5,7 @@ on:
       - feat/integra-erros-reforcos-v081
       - chore/organizacao-segura-historico-v082
       - feat/guia-edital-anki-diagnostico-v083
+      - feat/provas-bancas-materiais-brand-v084
   pull_request:
     branches:
       - feat/cronogramas-identidade-v07
@@ -35,3 +36,6 @@ jobs:
           node --check web/modules/study_time.js
           node --check web/modules/study_guide.js
           node --check web/modules/anki_analytics.js
+          node --check web/modules/assessment_insights.js
+          node --check web/modules/question_bank.js
+          node --check web/modules/sources.js
