@@ -29,7 +29,8 @@ ESSENTIAL = ('core.py', 'web_server.py', 'assessments.py',
              'web/modules/study_guide.js', 'web/modules/study_time.js',
              'web/modules/study_timer.js', 'web/modules/anki_analytics.js',
              'assessment_insights.py', 'question_bank.py',
-             'web/modules/assessment_insights.js', 'web/modules/question_bank.js')
+             'web/modules/assessment_insights.js', 'web/modules/question_bank.js',
+             'lesson_question_links.py')
 
 
 def _existing_controle_mestre(port: int) -> bool:
