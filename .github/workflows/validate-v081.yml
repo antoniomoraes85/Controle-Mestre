@@ -4,6 +4,7 @@ on:
     branches:
       - feat/integra-erros-reforcos-v081
       - chore/organizacao-segura-historico-v082
+      - feat/guia-edital-anki-diagnostico-v083
   pull_request:
     branches:
       - feat/cronogramas-identidade-v07
@@ -29,3 +30,7 @@ jobs:
           node --check web/app.js
           node --check web/modules/questions.js
           node --check web/modules/adaptive.js
+          node --check web/modules/study_timer.js
+          node --check web/modules/study_time.js
+          node --check web/modules/study_guide.js
+          node --check web/modules/anki_analytics.js
