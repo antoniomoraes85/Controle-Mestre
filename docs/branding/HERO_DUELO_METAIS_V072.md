@@ -22,6 +22,7 @@
 - `web/style.css` — gradientes prateado e dourado, animação de peão, queda do rei, refinamento responsivo e movimento reduzido.
 - `web/assets/branding/logo_horizontal_premium.svg`, `logo_vertical_premium.svg`, `logo_sidebar.svg` — texto vetorial com preenchimento metálico.
 - `tests/test_hero_branding.py` — testes de regressão de DOM, CSS, sincronização, parallax e SVG.
+- `launch.py` e `web_server.py` — assinatura de build no `/api/health` para impedir que a nova instalação reutilize uma v0.6.2 ou outra v0.7 já aberta por engano.
 
 ## Critérios de validação
 
