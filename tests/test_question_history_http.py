@@ -56,7 +56,7 @@ class QuestionHistoryHTTPTests(unittest.TestCase):
     def test_health_reports_actual_version(self):
         status,health=self.call('/api/health')
         self.assertEqual(status,200)
-        self.assertEqual(health['version'],'0.8.2')
+        self.assertEqual(health['version'],'0.8.3')
 
     def test_history_survives_new_connections_and_retries(self):
         status,new=self.call('/api/questions/batch',self.header(mode='batch'))
