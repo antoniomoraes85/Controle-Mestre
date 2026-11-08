@@ -12,6 +12,8 @@ import {renderStudyGuide} from './modules/study_guide.js';
 import {renderStudyTime} from './modules/study_time.js';
 import {createStudyTimer} from './modules/study_timer.js';
 import {renderAnkiAnalytics} from './modules/anki_analytics.js';
+import {renderAssessmentInsights, portugueseForm} from './modules/assessment_insights.js';
+import {renderQuestionBankPerformance} from './modules/question_bank.js';
 const $=(s,root=document)=>root.querySelector(s);
 const $$=(s,root=document)=>Array.from(root.querySelectorAll(s));
 const dayNames=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -49,6 +51,7 @@ function questionsView(d){return `
     ${metric('Rendimento · semana',pct(d.metrics.week_questions.rate),'Taxa ponderada','blue','%')}
     ${metric('Rendimento · 30 dias',pct(d.metrics.last30_questions.rate),'Últimos 30 dias','yellow','↑')}
   </div>
+  <div id="question-bank-report"></div>
   <section class="panel" id="historico-de-questoes">
     <div class="panel-head"><h2>Meu histórico de questões</h2>
       <span class="hint">REGISTROS ANTIGOS E DETALHADOS</span></div>
@@ -66,6 +69,10 @@ if(state.page==='guide')renderStudyGuide($('#study-guide-panel')).catch(e=>toast
 if(state.page==='chart')renderStudyTime($('#study-time-report')).catch(e=>toast(e.message,true));
 if(state.page==='review')renderAnkiAnalytics($('#anki-analytics-report')).catch(e=>toast(e.message,true));
 studyTimer.update();
+if(state.page==='assess'){
+  $('#content').insertAdjacentHTML('beforeend','<div id="assessment-insights-report"></div>');
+  renderAssessmentInsights($('#assessment-insights-report')).catch(e=>toast(e.message,true));
+}
 if(state.page==='questions'){
   const registration=$('#question-registration');
   renderQuestionsPanel(registration,d.subjects,load).catch(e=>{
@@ -75,6 +82,8 @@ if(state.page==='questions'){
   renderCaderno(caderno).catch(e=>{caderno.textContent='Erro ao carregar caderno: '+e.message;});
   const history=$('#question-batches');
   renderQuestionHistory(history).catch(e=>{history.textContent='Erro ao carregar histórico: '+e.message;});
+  const banks=$('#question-bank-report');
+  renderQuestionBankPerformance(banks).catch(e=>{banks.textContent='Erro ao carregar estatísticas: '+e.message;});
 }
 $('#today-chip').textContent=new Date(d.today+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});$('#screen-overlay').classList.remove('show');$('#sidebar').classList.remove('open');initParallax()}
 function initParallax(){const banner=$('#hero-banner');if(!banner)return;if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;if(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches)return;let ticking=false,mouseX=0,mouseY=0;function update(){banner.style.setProperty('--px',mouseX);banner.style.setProperty('--py',mouseY);ticking=false}banner.addEventListener('mousemove',e=>{const rect=banner.getBoundingClientRect();const x=((e.clientX-rect.left)/rect.width)*2-1;const y=((e.clientY-rect.top)/rect.height)*2-1;mouseX=Math.max(-1,Math.min(1,x));mouseY=Math.max(-1,Math.min(1,y));if(!ticking){requestAnimationFrame(update);ticking=true}},{passive:true});banner.addEventListener('mouseleave',()=>{mouseX=0;mouseY=0;if(!ticking){requestAnimationFrame(update);ticking=true}})}
@@ -98,6 +107,22 @@ async function handleAction(el){const action=el.dataset.action;try{
  if(action==='close-modal'){$('#modal-backdrop').hidden=true;return}
  if(action==='open-session'){sessionForm();return}
  if(action==='questions-form'){questionsForm();return}
+ if(action==='portuguese-form'){portugueseForm(modal,api);return}
+ if(action==='portuguese-delete'){
+   if(!confirm('Excluir definitivamente este resultado de prova de Português?'))return;
+   await api('assessment/portuguese/delete',{id:Number(el.dataset.id)});
+   await load();toast('Registro da prova excluído.');return;
+ }
+ if(action==='link-lesson'){
+   const subject=el.dataset.subject||'',topic=el.dataset.topic||'';
+   modal('Vincular caderno de questões à aula',`<form>
+     <div class="fields"><div class="field"><label>Disciplina</label><input readonly name="subject" value="${escapeHTML(subject)}"></div>
+     <div class="field"><label>Assunto</label><input readonly name="topic" value="${escapeHTML(topic)}"></div></div>
+     <div class="field"><label>Nome do caderno</label><input required name="title" maxlength="180" value="${escapeHTML(topic)} — questões"></div>
+     <div class="field"><label>URL oficial do caderno TEC (https://...)</label><input required type="url" name="url" placeholder="https://www.tecconcursos.com.br/..."></div>
+     ${baseFormActions}</form>`,async fd=>{await api('tec/bookmark',{title:fd.get('title'),url:fd.get('url'),subject,topic});});
+   return;
+ }
  if(action==='mock-form'){mockForm(modal,api,async()=>{});return}
  if(action==='essay-form'){essayForm(modal,api,async()=>{});return}
  if(action==='assessment-delete'){
