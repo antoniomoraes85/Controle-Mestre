@@ -6,7 +6,7 @@ Plataforma de planejamento e controle inteligente de estudos.
 
 O projeto retoma a plataforma anterior apresentada pelo canal **Atrator Concursos** em 18/09/2023: [PLATAFORMA CONTROLE MESTRE](https://youtu.be/NAwtZ3KIxao). A descrição pública apresenta planejamento semanal, adaptação à rotina, metas diárias, estudos guiados, revisões, simulados, redações, desempenho por tópico e apostilas de apoio. O vídeo foi identificado por seus metadados; não houve auditoria visual de todas as telas.
 
-## Versão atual: v0.6.0 (ciclo fiscal de nove disciplinas e AnkiConnect local; homologação pendente)
+## Versão atual: v0.6.1 (catálogo privado por aula e pasta externa compatível; homologação Windows pendente)
 
 - **Painel web local + Python + SQLite**: execução local e monousuário; Streamlit permanece como interface legada.
 - Metas semanais, cronômetro, ciclos de 1 a 10, questões, erros e revisões.
@@ -183,3 +183,17 @@ O repositório permanece público; não suba materiais, PDFs, bancos locais, CSV
 - **Validação:** 64 testes Python passaram, JS validado sintaticamente; não houve acesso ao Anki do usuário nem homologação Windows. **O GitHub não contém histórico privado, PDFs, base SQLite ou credenciais**.
 
 **Próxima frente:** testar no Windows com perfil Anki aberto e PDFs próprios, reconciliar eventos individuais sem duplicidades, mapear aulas aos 50 assuntos e avançar para o edital verticalizado versionado. Não publicar servidor local na internet.
+
+## v0.6.1 — Catálogo particular por aulas e diretório externo (07/11/2026)
+
+A aplicação reconhece a organização real do titular: `Controle-Mestre-main/CONTROLE_MESTRE/`, `Controle-Mestre-main/MATERIAL TEÓRICO/` e `Controle-Mestre-main/ANKI/`. **O software não move, renomeia nem copia o acervo original.** O caminho da pasta `MATERIAL TEÓRICO` é detectado automaticamente quando está ao lado da aplicação ou pode ser escolhido localmente pelo usuário com confirmação.
+
+- [Guia de atualização v0.6.1](GUIA_CONTROLE_MESTRE_V061.md).
+- Subpastas reconhecidas: `Teoria Principal`, `Simplificado`/`Teoria Simplificada`, `PASSO ESTRATÉGICO`, `QUESTÕES`, inclusive sob disciplinas numeradas.
+- Novo planejador de aulas: utiliza as listas fornecidas, com 125 aulas em oito disciplinas; Direito Civil aguarda relação de aulas. As 50 entradas genéricas anteriores são mantidas para compatibilidade e históricos existentes.
+- O catálogo detalhado é **privado**: `dados/catalogo/aulas_primeiro_ciclo.csv`, entregue somente no pacote pessoal, nunca publicado no repositório GitHub público.
+- A vinculação exige o código correto da aula no nome do PDF ou preenchimento manual. Um PDF de Aula 29 não é apresentado como material da Aula 00.
+- Testes: **70** Python em fixtures isoladas; validação de sintaxe JS. O acervo e o Anki reais não foram acessados no ambiente de desenvolvimento.
+- Os arquivos existentes `ANKI/*.bas`, `ANKI/*.csv`, `ANKI/*.xlsm` e planilhas permanecem intactos. A integração AnkiConnect da v0.6.0 continua apenas de leitura.
+
+**Pendências:** receber a lista de Direito Civil; testar localmente no Windows; vincular os PDFs reais (não enviados); concluir auditoria das macros/CSV Anki e correspondência entre aulas, assuntos e edital vigente.
