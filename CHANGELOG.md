@@ -1,3 +1,12 @@
+## v0.6.2 — Correção do catálogo visível e integração inicial TEC Avançado (2026-11-07)
+
+- Corrigido bug de renderização: 125 aulas previamente cadastradas no CSV agora aparecem no painel **Materiais e TEC Concursos**, independentemente da descoberta de PDFs.
+- Separadas as contagens de **aulas descritas** e **PDFs reais encontrados**. A tela informa caminho esperado da pasta externa, com configuração manual segura.
+- Criadas rotas de cadernos TEC (validação HTTPS do domínio oficial) e importador CSV de resultados elaborados pelo usuário em `dados/importacoes/tec/`; banco legado Qconcursos mantido sem migração destrutiva.
+- Cadastro manual de questões com `TEC Concursos` como plataforma-padrão; tipos de material Teoria, Simplificado, Questões, Passo Estratégico.
+- Conector TEC limitado a links e resultados autorizados; sem login, scraping, APIs não documentadas ou coleta automática de dados de conta.
+- Guia de atualização sem mover PDFs/Anki; suíte Python e smoke JS executados. Homologação visual Windows pendente.
+
 ## v0.6.1 — compatibilidade com acervo externo e catálogo privado (07/11/2026)
 
 - Reconhece MATERIAL TEÓRICO como pasta irmã de CONTROLE_MESTRE, com opção de configurar caminho absoluto válido pelo painel.
