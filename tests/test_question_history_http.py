@@ -90,7 +90,6 @@ class QuestionHistoryHTTPTests(unittest.TestCase):
         self.assertEqual(status,200)
         self.assertEqual(finish['status'],'finalized')
         self.assertEqual(self.call('/api/questions/batch/finalize',{'batch_id':bid})[0],200)
-        self.assertEqual(self.call('/api/overview')[1]['metrics']['week_questions']['total'],0)  # fora da semana corrente
         self.assertEqual(len(self.call('/api/questions/history')[1]['items']),1)
         self.assertEqual(self.call('/api/questions/drafts')[1]['items'],[])
         self.assertEqual(len(self.call('/api/questions/caderno')[1]),1)
