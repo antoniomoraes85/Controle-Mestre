@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - feat/integra-erros-reforcos-v081
+  pull_request:
+    branches:
+      - feat/cronogramas-identidade-v07
 jobs:
   testes:
     runs-on: ubuntu-latest
