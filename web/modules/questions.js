@@ -705,6 +705,29 @@ export async function updateCorrection(select) {
   }
 }
 
+export async function renderQuestionHistory(container) {
+  container.innerHTML = '<p class="loading">Carregando histórico salvo…</p>';
+  try {
+    const data = await api('questions/history');
+    const rows = data.items || [];
+    if (!rows.length) {
+      container.innerHTML = '<p class="subtitle">Sem baterias finalizadas ainda. Cada novo registro concluído aparecerá aqui e continuará salvo após fechar o programa.</p>';
+      return;
+    }
+    container.innerHTML = `<div class="table-wrap"><table class="act-table">
+    <thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Plataforma</th><th>Questões</th><th>Acertos</th><th>Rendimento</th><th>Modo</th></tr></thead>
+    <tbody>${rows.map(row => `<tr>
+      <td>${_esc(row.day)}</td><td>${_esc(row.subject)}</td><td>${_esc(row.topic||'—')}</td>
+      <td>${_esc(row.platform||'—')}</td><td>${Number(row.total)}</td><td>${Number(row.correct)}</td>
+      <td>${row.total ? (100*Number(row.correct)/Number(row.total)).toFixed(1).replace('.',',')+'%' : '—'}</td>
+      <td>${_esc(row.mode==='individual'?'Por questão':'Por bateria')}</td>
+    </tr>`).join('')}</tbody></table></div>
+    <p class="period-caption">Até 200 baterias recentes. Os dados completos continuam no banco local, inclusive após fechar o navegador.</p>`;
+  } catch(error) {
+    container.textContent = 'Histórico não disponível: '+error.message;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Utilitários internos
 // ---------------------------------------------------------------------------
