@@ -154,6 +154,27 @@ class WebServerTests(unittest.TestCase):
             self.assertEqual(self.call('/api/qconcursos/import',{'file_name':'my_results.csv','confirm':True})[1]['inserted'],1)
             self.assertEqual(self.call('/api/qconcursos/import',{'file_name':'my_results.csv','confirm':True})[1]['inserted'],0)
 
+    def test_tec_advanced_routes_and_catalog(self):
+        base=Path(self.tmp.name)
+        tec=base/'tec';tec.mkdir()
+        (tec/'resultados.csv').write_text(
+            'data;disciplina;assunto;total;acertos;banca;link;id\n'
+            '07/11/2026;Contabilidade Geral;Conceitos;12;10;FCC;https://www.tecconcursos.com.br/questoes/123;tec01\n',
+            encoding='utf8')
+        with patch.object(sources,'TEC_ROOT',tec):
+            code,st=self.call('/api/sources')
+            self.assertEqual(code,200)
+            self.assertEqual(st['catalog']['total_lessons'],125)
+            self.assertEqual(st['tec_csv_files'],['resultados.csv'])
+            self.assertEqual(self.call('/api/tec/bookmark',{'title':'Caderno Fiscal','url':'https://www.tecconcursos.com.br/cadernos/25'})[0],201)
+            self.assertEqual(self.call('/api/tec/bookmark',{'title':'Inseguro','url':'https://evil.example.test/'})[0],400)
+            self.assertEqual(self.call('/api/sources')[1]['tec_bookmarks'][0]['title'],'Caderno Fiscal')
+            self.assertEqual(self.call('/api/tec/preview',{'file_name':'resultados.csv'})[1]['rows'],1)
+            self.assertEqual(self.call('/api/tec/import',{'file_name':'resultados.csv'})[0],400)
+            self.assertEqual(self.call('/api/tec/import',{'file_name':'resultados.csv','confirm':True})[1]['inserted'],1)
+            self.assertEqual(self.call('/api/tec/import',{'file_name':'resultados.csv','confirm':True})[1]['inserted'],0)
+            self.assertEqual(self.call('/api/health')[1]['version'],'0.6.2')
+
     def test_no_path_traversal(self):
         self.assertEqual(self.call('/some/../secrets')[0],404)
 
