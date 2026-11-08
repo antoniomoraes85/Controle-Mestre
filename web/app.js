@@ -178,8 +178,8 @@ async function handleAction(el){const action=el.dataset.action;try{
      <div class="fields"><div class="field"><label>Disciplina</label><input readonly name="subject" value="${escapeHTML(subject)}"></div>
      <div class="field"><label>Assunto</label><input readonly name="topic" value="${escapeHTML(topic)}"></div></div>
      <div class="field"><label>Nome do caderno</label><input required name="title" maxlength="180" value="${escapeHTML(topic)} — questões"></div>
-     <div class="field"><label>URL oficial do caderno TEC (https://...)</label><input required type="url" name="url" placeholder="https://www.tecconcursos.com.br/..."></div>
-     ${baseFormActions}</form>`,async fd=>{await api('tec/bookmark',{title:fd.get('title'),url:fd.get('url'),subject,topic});});
+     <div class="field"><label>URL HTTPS do caderno (TEC, QConcursos ou questo.es)</label><input required type="url" name="url" placeholder="https://www.tecconcursos.com.br/..."></div>
+     ${baseFormActions}</form>`,async fd=>{await api('materials/lesson-link',{label:fd.get('title'),url:fd.get('url'),subject,topic});});
    return;
  }
  if(action==='mock-form'){mockForm(modal,api,async()=>{});return}
