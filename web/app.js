@@ -110,6 +110,13 @@ async function handleAction(el){const action=el.dataset.action;try{
          total:t!==''?Number(t):null,correct:c!==''?Number(c):null,error_type:f.get('error_type')||'',day:state.data.today});
     });return;
  }
+ if(action==='set-material-root'){
+   const path=prompt('Cole o caminho completo da sua pasta MATERIAL TEÓRICO no Windows (sem mover nenhum PDF):', '');
+   if(path===null||!path.trim())return;
+   if(!confirm('Autorizar a leitura local de PDFs apenas desta pasta MATERIAL TEÓRICO? Não serão copiados ou enviados para a nuvem.'))return;
+   await api('sources/root',{path:path.trim(),confirm:true});
+   await load();navigate('sources');toast('Pasta configurada. Clique em Atualizar biblioteca.');return;
+ }
  if(action==='scan-materials'){
    const result=await api('sources/scan',{});
    await load();toast(`${result.scanned} PDF(s) catalogado(s)${result.errors.length?' · '+result.errors.length+' aviso(s)':''}.`);return;
