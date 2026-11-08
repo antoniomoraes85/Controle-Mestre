@@ -97,6 +97,7 @@ class BatchFinalizationTests(unittest.TestCase):
     def test_migracao_reexecutada(self):
         self.db.close()
         self.db=connect(Path(self.temp.name)/'db.sqlite')
+        self.db.close()
         self.db=connect(Path(self.temp.name)/'db.sqlite')
         self.assertTrue(self.db.execute("PRAGMA table_info(question_batches)").fetchall())
 
