@@ -1,4 +1,4 @@
-"""Catálogo local de materiais próprios e ponte autorizada para resultados Qconcursos.
+"""Catálogo local do Estratégia e importação própria de resultados do TEC/legado.
 
 Não faz scraping, não guarda PDFs no SQLite e não extrai enunciados protegidos.
 """
@@ -17,6 +17,7 @@ from core import ROOT, all_rows, parse_day, norm, map_subject
 
 PDF_ROOT = ROOT / 'dados' / 'materiais' / 'estrategia'
 QC_ROOT = ROOT / 'dados' / 'importacoes' / 'qconcursos'
+TEC_ROOT = ROOT / 'dados' / 'importacoes' / 'tec'
 MAX_PDF_SIZE = 150 * 1024 * 1024
 MAX_CSV_SIZE = 2 * 1024 * 1024
 MAX_FILES = 500
@@ -31,6 +32,12 @@ def external_root(c):
     candidates=([Path(row[0])] if row and row[0] else []) + [
         ROOT.parent / 'MATERIAL TEÓRICO', ROOT.parent / 'MATERIAL TEORICO',
         ROOT / 'MATERIAL TEÓRICO']
+    # Windows: títulos podem usar grafias/maiúsculas diferentes; verificar apenas
+    # irmãos da aplicação, sem buscas amplas no computador ou acesso à nuvem.
+    try:
+        candidates.extend(x for x in ROOT.parent.iterdir() if x.is_dir() and norm(x.name)=='material teorico')
+    except OSError:
+        pass
     for p in candidates:
         if p.is_dir() and not p.is_symlink() and norm(p.name)=='material teorico':
             return p.resolve()
@@ -113,12 +120,19 @@ def prepare(c):
         subject TEXT NOT NULL DEFAULT '',topic TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS tec_imports (
+        id INTEGER PRIMARY KEY, filename TEXT NOT NULL, digest TEXT NOT NULL UNIQUE,
+        rows INTEGER NOT NULL, inserted INTEGER NOT NULL, imported_at TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS qc_imports (
         id INTEGER PRIMARY KEY, filename TEXT NOT NULL, digest TEXT NOT NULL UNIQUE,
         rows INTEGER NOT NULL, inserted INTEGER NOT NULL,
         imported_at TEXT NOT NULL
       );
     ''')
+    bookmark_cols={r[1] for r in c.execute('PRAGMA table_info(question_bookmarks)')}
+    if 'provider' not in bookmark_cols:
+        c.execute("ALTER TABLE question_bookmarks ADD COLUMN provider TEXT NOT NULL DEFAULT 'Qconcursos'")
     cols={r[1] for r in c.execute('PRAGMA table_info(study_materials)')}
     if 'material_type' not in cols:
         c.execute("ALTER TABLE study_materials ADD COLUMN material_type TEXT NOT NULL DEFAULT 'Teoria'")
@@ -229,28 +243,36 @@ def assign_material(c, ident, subject='', topic='', course='', lesson='', materi
     return {'ok': True}
 
 
-def register_bookmark(c, title, url, subject='', topic=''):
+def register_bookmark(c, title, url, subject='', topic='', provider='Qconcursos'):
     prepare(c)
     title = str(title).strip()[:180]
     u = urlsplit(str(url).strip())
     host = (u.hostname or '').lower()
-    if u.scheme != 'https' or host not in ('qconcursos.com', 'www.qconcursos.com'):
-        raise ValueError('Use apenas links HTTPS oficiais do qconcursos.com')
+    allowed={'Qconcursos':('qconcursos.com','www.qconcursos.com'),
+             'TEC Concursos':('tecconcursos.com.br','www.tecconcursos.com.br')}
+    if provider not in allowed or u.scheme != 'https' or host not in allowed[provider]:
+        raise ValueError('Use apenas links HTTPS oficiais do '+ ('TEC' if provider=='TEC Concursos' else 'Qconcursos'))
     if not title:
         raise ValueError('Informe um título')
     if u.username or u.password:
         raise ValueError('Não inclua credenciais no link')
-    c.execute('''INSERT INTO question_bookmarks(title,url,subject,topic,created_at)
-      VALUES (?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET title=excluded.title,
+    c.execute('''INSERT INTO question_bookmarks(title,url,subject,topic,created_at,provider)
+      VALUES (?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET title=excluded.title,
       subject=excluded.subject,topic=excluded.topic''',
-      (title, url.strip()[:2000], str(subject).strip()[:120], str(topic).strip()[:180],datetime.now().isoformat(timespec='seconds')))
+      (title, url.strip()[:2000], str(subject).strip()[:120], str(topic).strip()[:180],
+       datetime.now().isoformat(timespec='seconds'),provider))
     c.commit()
     return {'ok': True}
 
 
-def list_bookmarks(c):
+def list_bookmarks(c, provider='Qconcursos'):
     prepare(c)
-    return all_rows(c, 'SELECT id,title,url,subject,topic FROM question_bookmarks ORDER BY id DESC LIMIT 300')
+    return all_rows(c, '''SELECT id,title,url,subject,topic FROM question_bookmarks
+        WHERE provider=? ORDER BY id DESC LIMIT 300''',(provider,))
+
+
+def register_tec_bookmark(c,title,url,subject='',topic=''):
+    return register_bookmark(c,title,url,subject,topic,provider='TEC Concursos')
 
 
 _ALIASES = {
@@ -264,7 +286,7 @@ _ALIASES = {
     'external_id': ('id', 'codigo', 'código', 'external_id'),
 }
 
-def parse_results_csv(blob: bytes):
+def parse_results_csv(blob: bytes, provider='Qconcursos'):
     """Format is a user-created CSV of *results*, NOT a native QC export claim."""
     if not blob or len(blob) > MAX_CSV_SIZE:
         raise ValueError('CSV vazio ou superior a 2 MB')
@@ -301,8 +323,9 @@ def parse_results_csv(blob: bytes):
         url = get('reference_url')
         if url:
             h=(urlsplit(url).hostname or '').lower()
-            if urlsplit(url).scheme != 'https' or h not in ('qconcursos.com','www.qconcursos.com'):
-                raise ValueError(f'Linha {i}: URL deve ser do Qconcursos')
+            accepted=('tecconcursos.com.br','www.tecconcursos.com.br') if provider=='TEC Concursos' else ('qconcursos.com','www.qconcursos.com')
+            if urlsplit(url).scheme != 'https' or h not in accepted:
+                raise ValueError(f'Linha {i}: URL deve ser do {provider}')
         rows.append(dict(day=day, subject=subject, topic=get('topic')[:180],
                          total=total, correct=correct, bank=get('bank')[:80],
                          reference_url=url[:2000], external_id=get('external_id')[:140], line=i))
@@ -311,41 +334,45 @@ def parse_results_csv(blob: bytes):
     return rows
 
 
-def _csv_path(file_name: str):
-    QC_ROOT.mkdir(parents=True,exist_ok=True)
+def _csv_path(file_name: str, provider='Qconcursos'):
+    folder=TEC_ROOT if provider=='TEC Concursos' else QC_ROOT
+    folder.mkdir(parents=True,exist_ok=True)
     if not re.fullmatch(r'[\w .()\-]{1,140}\.csv', file_name, re.UNICODE) or file_name.startswith('.'):
         raise ValueError('Nome do arquivo CSV inválido')
-    path = QC_ROOT / file_name
-    if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(QC_ROOT.resolve()):
+    path = folder / file_name
+    if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(folder.resolve()):
         raise ValueError('Arquivo CSV não localizado na pasta permitida')
     return path
 
 
-def list_csv_files():
-    QC_ROOT.mkdir(parents=True, exist_ok=True)
-    return [p.name for p in sorted(QC_ROOT.glob('*.csv')) if p.is_file() and not p.is_symlink()][:100]
+def list_csv_files(provider='Qconcursos'):
+    folder=TEC_ROOT if provider=='TEC Concursos' else QC_ROOT
+    folder.mkdir(parents=True, exist_ok=True)
+    return [p.name for p in sorted(folder.glob('*.csv')) if p.is_file() and not p.is_symlink()][:100]
 
 
-def preview_csv(c, file_name):
+def preview_csv(c, file_name, provider='Qconcursos'):
     prepare(c)
-    p = _csv_path(str(file_name))
+    p = _csv_path(str(file_name),provider)
     blob = p.read_bytes()
-    rows = parse_results_csv(blob)
+    rows = parse_results_csv(blob,provider)
     digest = hashlib.sha256(blob).hexdigest()
-    old = c.execute('SELECT 1 FROM qc_imports WHERE digest=?',(digest,)).fetchone()
+    table = 'tec_imports' if provider=='TEC Concursos' else 'qc_imports'
+    old = c.execute('SELECT 1 FROM '+table+' WHERE digest=?',(digest,)).fetchone()
     return {'file_name':p.name,'rows':len(rows),'questions':sum(x['total'] for x in rows),
             'correct':sum(x['correct'] for x in rows),'already_imported':bool(old),
             'sample':rows[:5]}
 
 
-def import_csv(c, file_name):
+def import_csv(c, file_name, provider='Qconcursos'):
     prepare(c)
-    p = _csv_path(str(file_name))
+    p = _csv_path(str(file_name),provider)
     blob = p.read_bytes()
-    rows = parse_results_csv(blob)
+    rows = parse_results_csv(blob,provider)
     digest = hashlib.sha256(blob).hexdigest()
     stamp = datetime.now().isoformat(timespec='seconds')
-    if c.execute('SELECT 1 FROM qc_imports WHERE digest=?',(digest,)).fetchone():
+    table='tec_imports' if provider=='TEC Concursos' else 'qc_imports'
+    if c.execute('SELECT 1 FROM '+table+' WHERE digest=?',(digest,)).fetchone():
         return {'rows':len(rows),'inserted':0,'skipped':len(rows),'already_imported':True}
     added = 0
     try:
@@ -353,16 +380,17 @@ def import_csv(c, file_name):
         c.execute('BEGIN IMMEDIATE')
         for item in rows:
             key = item['external_id'] or f"{digest}:{item['line']}"
-            fingerprint = 'qc:' + hashlib.sha256(key.encode()).hexdigest()
+            fingerprint = ('tec:' if provider=='TEC Concursos' else 'qc:') + hashlib.sha256(key.encode()).hexdigest()
             existing = c.execute('SELECT 1 FROM questions WHERE fingerprint=?',(fingerprint,)).fetchone()
             if existing: continue
             c.execute('INSERT OR IGNORE INTO subjects(name,weight,area) VALUES(?,?,?)',(item['subject'],4,'Outros'))
             cur = c.execute('''INSERT INTO questions(day,subject,topic,bank,platform,total,correct,
                          error_type,notes,source,fingerprint) VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
-                (item['day'],item['subject'],item['topic'],item['bank'],'Qconcursos',
-                 item['total'],item['correct'],'',item['reference_url'],'qconcursos-user-csv',fingerprint))
+                (item['day'],item['subject'],item['topic'],item['bank'],provider,
+                 item['total'],item['correct'],'',item['reference_url'],
+                 'tec-user-csv' if provider=='TEC Concursos' else 'qconcursos-user-csv',fingerprint))
             added += cur.rowcount
-        c.execute('INSERT INTO qc_imports(filename,digest,rows,inserted,imported_at) VALUES(?,?,?,?,?)',
+        c.execute('INSERT INTO '+table+'(filename,digest,rows,inserted,imported_at) VALUES(?,?,?,?,?)',
                   (p.name,digest,len(rows),added,stamp))
         c.commit()
     except Exception:
@@ -373,8 +401,12 @@ def import_csv(c, file_name):
 
 def status(c):
     from lesson_catalog import status as lesson_status
-    return {'materials':list_materials(c),'bookmarks':list_bookmarks(c),
-            'csv_files':list_csv_files(),
+    return {'materials':list_materials(c),
+            'bookmarks':list_bookmarks(c),  # legado Qconcursos preservado
+            'tec_bookmarks':list_bookmarks(c,'TEC Concursos'),
+            'csv_files':list_csv_files(),  # legado Qconcursos preservado
+            'tec_csv_files':list_csv_files('TEC Concursos'),
+            'expected_external_path':str(ROOT.parent / 'MATERIAL TEÓRICO'),
             'roots':[{'kind':kind,'path':str(root)} for kind,root in roots(c)],
             'catalog':lesson_status(c)}
 
