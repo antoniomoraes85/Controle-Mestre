@@ -10,9 +10,44 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/assets/branding/favicon-16x16.png" />
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/branding/apple-touch-icon.png" />
 <link rel="stylesheet" href="/style.css" />
+<script src="/modules/intro.js" type="module"></script>
 <script src="/app.js" type="module"></script>
 </head>
 <body>
+<template id="intro-template">
+  <div class="chess-intro">
+    <div class="intro-art" aria-hidden="true">
+      <svg class="intro-scene" viewBox="0 0 800 360" focusable="false">
+        <defs>
+          <linearGradient id="intro-gold"><stop stop-color="#996515"/><stop offset=".35" stop-color="#FFEA00"/><stop offset=".6" stop-color="#FFD600"/><stop offset="1" stop-color="#D4A017"/></linearGradient>
+          <linearGradient id="intro-dark"><stop stop-color="#101114"/><stop offset=".5" stop-color="#555c68"/><stop offset="1" stop-color="#1D2026"/></linearGradient>
+          <radialGradient id="intro-light"><stop stop-color="#FFD600" stop-opacity=".3"/><stop offset="1" stop-color="#D4A017" stop-opacity="0"/></radialGradient>
+          <pattern id="intro-squares" width="100" height="100" patternUnits="userSpaceOnUse"><rect width="100" height="100" fill="#101114"/><path d="M0 0h50v50H0zM50 50h50v50H50z" fill="#302b1c"/><path d="M0 0h100v100H0z" fill="none" stroke="#D4A017" stroke-opacity=".2"/></pattern>
+        </defs>
+        <g class="intro-camera">
+          <g class="intro-board"><path d="M150 180H650L790 340H10Z" fill="url(#intro-squares)" stroke="#D4A017" stroke-opacity=".45"/><ellipse cx="410" cy="258" rx="360" ry="95" fill="url(#intro-light)"/></g>
+          <ellipse class="intro-impact" cx="568" cy="283" rx="115" ry="24" fill="url(#intro-light)"/>
+          <g class="intro-king" fill="url(#intro-dark)" stroke="#8E95A2" stroke-width="1.5">
+            <ellipse cx="485" cy="279" rx="45" ry="9" fill="#101114" stroke="none"/>
+            <path d="M478 83v-20h14v20h17v13h-17v19h-14V96h-17V83Z"/>
+            <path d="M459 119l8 36h36l9-36-17 10-10-18-10 18Z"/>
+            <path d="M470 160h30l-5 25q0 39 21 70h-62q21-31 21-70Z"/>
+            <rect x="451" y="253" width="68" height="12" rx="5"/><path d="M450 266h70l8 14h-86Z"/>
+          </g>
+          <g class="intro-pawn" fill="url(#intro-gold)">
+            <ellipse cx="300" cy="282" rx="44" ry="8" fill="#101114" opacity=".8"/>
+            <circle cx="300" cy="152" r="26"/><ellipse cx="300" cy="181" rx="23" ry="7"/>
+            <path d="M283 188h34q-4 37 16 63h-66q20-26 16-63Z"/>
+            <rect x="265" y="250" width="70" height="12" rx="5"/><path d="M265 265h70l10 15h-90Z"/>
+            <path d="M287 139q-10 10-5 19" fill="none" stroke="#F5F5F5" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+          </g>
+        </g>
+      </svg>
+      <div class="intro-brand"><img src="/assets/branding/logo_horizontal_premium.svg" width="880" height="200" alt=""/><p class="intro-quote">O PODER NÃO ESTÁ NA PEÇA.<br>ESTÁ NA ESTRATÉGIA DE QUEM A MOVE.</p></div>
+    </div>
+    <button class="intro-skip" type="button">Pular introdução <span aria-hidden="true">· Esc</span></button>
+  </div>
+</template>
 <div class="shell">
   <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
     <div class="brand">
