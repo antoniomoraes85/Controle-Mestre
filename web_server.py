@@ -18,6 +18,8 @@ from study_guide import read as study_read, create as study_create, import_rows 
 from bizu_seed import rows as bizu_rows, provenance as bizu_provenance
 from study_time import report as study_time_report, save as study_time_save
 from anki_analytics import collect as anki_review_collect, save as anki_review_save, report as anki_review_report
+from assessment_insights import report as assess_insights_report, record as portuguese_record, remove as portuguese_remove
+from question_bank import report as question_bank_report
 from adaptive import diagnose, preview_plan, apply_plan
 from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
@@ -177,8 +179,16 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.3','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.4','mode':'private-local','multiuser':False})
         # --- Rastreamento de erros ---
+        if route=='/api/assessment/insights':
+            c=connect()
+            try:return self._json(200,assess_insights_report(c))
+            finally:c.close()
+        if route=='/api/questions/bank-performance':
+            c=connect()
+            try:return self._json(200,question_bank_report(c))
+            finally:c.close()
         if route=='/api/questions/drafts':
             c=connect()
             try:
@@ -328,6 +338,10 @@ class AppHandler(BaseHTTPRequestHandler):
                 if args.get('confirm') is not True:
                     raise ValueError('Confirme a importação dos resultados do CSV.')
                 return self._json(200,import_csv(c,args['file_name']))
+            if route=='/api/assessment/portuguese':
+                return self._json(201,portuguese_record(c,args))
+            if route=='/api/assessment/portuguese/delete':
+                return self._json(200,portuguese_remove(c,int(args['id'])))
             if route=='/api/assessment/mock':
                 return self._json(201,{'ok':True,'id':insert_mock(c,args)})
             if route=='/api/assessment/essay':
