@@ -21,6 +21,12 @@ from fiscal_path import status as fiscal_status, activate as fiscal_activate, pr
 from core import (ROOT, connect, all_rows, metric_data, subject_metrics,
                   get_days, save_day, generate_plan, add_session, add_questions,
                   DAY_CAPS, METHODS)
+from error_tracking import (
+    register_batch, register_question_item, get_batch,
+    get_error_summary, get_caderno_erros, update_item_correction,
+    feed_performance, ERROR_CAUSES, ITEM_RESULTS, ITEM_DIFFICULTIES,
+    CORRECTION_STATUSES, GABARITO_TIMINGS,
+)
 
 WEB = ROOT / 'web'
 
@@ -135,13 +141,52 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.6.2','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.7.0','mode':'private-local','multiuser':False})
+        # --- Rastreamento de erros ---
+        if route=='/api/questions/caderno':
+            c=connect()
+            try:
+                qs=urlsplit(self.path).query
+                p={k:v[0] for k,v in parse_qs(qs).items()}
+                nr=p.get('needs_reinforcement')
+                return self._json(200,get_caderno_erros(c,
+                    subject=p.get('subject'),topic=p.get('topic'),
+                    primary_cause=p.get('primary_cause'),
+                    correction_status=p.get('correction_status'),
+                    needs_reinforcement=None if nr is None else nr=='1',
+                    limit=int(p.get('limit','100'))))
+            finally:c.close()
+        if route=='/api/questions/summary':
+            c=connect()
+            try:
+                qs=urlsplit(self.path).query
+                p={k:v[0] for k,v in parse_qs(qs).items()}
+                return self._json(200,get_error_summary(c,
+                    subject=p.get('subject'),topic=p.get('topic'),
+                    since=p.get('since')))
+            finally:c.close()
+        if re.fullmatch(r'/api/questions/batch/\d{1,12}',route):
+            c=connect()
+            try:
+                bid=int(route.rsplit('/',1)[-1])
+                return self._json(200,get_batch(c,bid))
+            except ValueError as exc:return self._json(404,{'error':str(exc)})
+            finally:c.close()
+        if route=='/api/questions/constants':
+            return self._json(200,{'error_causes':ERROR_CAUSES,'results':list(ITEM_RESULTS),
+                'difficulties':list(ITEM_DIFFICULTIES),'correction_statuses':list(CORRECTION_STATUSES),
+                'gabarito_timings':list(GABARITO_TIMINGS)})
         if route=='/':route='/index.html'
         static={'/index.html':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8',
-                '/app.js':'text/javascript; charset=utf-8'}
-        # Só módulos existentes em diretório explícito (sem traversal ou leitura arbitrária).
+                '/app.js':'text/javascript; charset=utf-8', '/favicon.ico':'image/x-icon'}
+        # Só módulos e assets existentes em diretórios explícitos (sem traversal ou leitura arbitrária).
         if route.startswith('/modules/') and re.fullmatch(r'/modules/[a-z_]+\.js',route):
             static[route]='text/javascript; charset=utf-8'
+        elif route.startswith('/assets/branding/') and re.fullmatch(r'/assets/branding/[a-zA-Z0-9_\-\.]+',route):
+            ext=route.rsplit('.',1)[-1].lower()
+            mimes={'svg':'image/svg+xml','png':'image/png','webp':'image/webp','ico':'image/x-icon'}
+            if ext in mimes:
+                static[route]=mimes[ext]
         if route not in static:return self._json(404,{'error':'Arquivo não encontrado'})
         path=WEB / route[1:]
         if not path.is_file():return self._json(404,{'error':'Arquivo não encontrado'})
@@ -256,6 +301,54 @@ class AppHandler(BaseHTTPRequestHandler):
                     str(args.get('topic',''))[:200],int(args['total']),int(args['correct']),
                     str(args.get('bank',''))[:80],str(args.get('platform',''))[:80],
                     str(args.get('error_type',''))[:80],str(args.get('notes',''))[:250])
+                return self._json(200,{'ok':True})
+            if route=='/api/questions/batch':
+                sub=str(args['subject']).strip()
+                if not c.execute('SELECT 1 FROM subjects WHERE name=?',(sub,)).fetchone():raise ValueError('Disciplina não cadastrada')
+                bid=register_batch(c,
+                    day=args.get('day') or date.today().isoformat(),
+                    subject=sub,
+                    topic=str(args.get('topic',''))[:200],
+                    platform=str(args.get('platform',''))[:80],
+                    banca=str(args.get('banca',''))[:80],
+                    total=int(args['total']),
+                    correct=int(args['correct']),
+                    unanswered=int(args.get('unanswered',0)),
+                    time_used_min=float(args.get('time_used_min',0)),
+                    had_prior_review=bool(args.get('had_prior_review',False)),
+                    gabarito_timing=str(args.get('gabarito_timing','Não consultado')),
+                    mode=str(args.get('mode','batch')),
+                    cause_counts=args.get('cause_counts') or {},
+                    notes=str(args.get('notes',''))[:500],
+                )
+                perf=feed_performance(c,bid)
+                add_questions(c,perf['day'],perf['subject'],perf['topic'],
+                    perf['total'],perf['correct'],
+                    str(args.get('banca',''))[:80],str(args.get('platform',''))[:80],
+                    '','Registrado via error_tracking')
+                return self._json(201,{'ok':True,'batch_id':bid,'performance':perf})
+            if route=='/api/questions/item':
+                bid=int(args['batch_id'])
+                iid=register_question_item(c,
+                    batch_id=bid,
+                    question_ref=str(args.get('question_ref',''))[:100],
+                    subject=str(args.get('subject',''))[:200],
+                    topic=str(args.get('topic',''))[:200],
+                    subtopic=str(args.get('subtopic',''))[:200],
+                    result=str(args['result']),
+                    primary_cause=str(args.get('primary_cause','Não especificado')),
+                    secondary_causes=list(args.get('secondary_causes') or []),
+                    observation=str(args.get('observation',''))[:500],
+                    difficulty=str(args.get('difficulty',''))[:40],
+                    resolution_time_s=int(args.get('resolution_time_s',0)),
+                    consulted_gabarito=bool(args.get('consulted_gabarito',False)),
+                    needs_reinforcement=bool(args.get('needs_reinforcement',False)),
+                    correction_status=str(args.get('correction_status','Aberto')),
+                )
+                return self._json(201,{'ok':True,'item_id':iid})
+            if route=='/api/questions/item/correction':
+                update_item_correction(c,int(args['id']),str(args['correction_status']),
+                    args.get('observation'))
                 return self._json(200,{'ok':True})
             if route=='/api/review/complete':
                 id_=int(args['id'])

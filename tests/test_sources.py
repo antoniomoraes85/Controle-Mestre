@@ -2,18 +2,22 @@
 import os
 import sys
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+import sys as _s, pathlib as _p; _s.path.insert(0, str(_p.Path(__file__).resolve().parent))
+from _isolation import isolate
 import core
 import sources
 import backup_manager
 
 class SourcesTests(unittest.TestCase):
     def setUp(self):
+        isolate(self)
         self.temp=tempfile.TemporaryDirectory()
         self.root=Path(self.temp.name)
         self.db=self.root/'fixture.sqlite3'
@@ -98,7 +102,7 @@ class SourcesTests(unittest.TestCase):
         self.conn.commit()
         dest=backup_manager.make_backup(self.db,self.root/'backups',force=True)
         self.assertTrue(backup_manager.verify_backup(dest))
-        with sqlite3.connect(str(dest)) as check:
+        with closing(sqlite3.connect(str(dest))) as check:  # fecha o arquivo (Windows)
             self.assertEqual(check.execute('SELECT SUM(minutes) FROM sessions').fetchone()[0],35)
         dest2=backup_manager.make_backup(self.db,self.root/'backups')
         self.assertEqual(dest,dest2)

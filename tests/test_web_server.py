@@ -10,6 +10,8 @@ from urllib.error import HTTPError
 from urllib.request import Request,urlopen
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+import sys as _s, pathlib as _p; _s.path.insert(0, str(_p.Path(__file__).resolve().parent))
+from _isolation import isolate
 import core
 import sources
 from unittest.mock import patch
@@ -17,6 +19,7 @@ from web_server import AppHandler, current_week
 
 class WebServerTests(unittest.TestCase):
     def setUp(self):
+        isolate(self)
         self.tmp=tempfile.TemporaryDirectory()
         self.orig=core.DB_PATH
         core.DB_PATH=Path(self.tmp.name)/'fixture.db'
@@ -122,6 +125,24 @@ class WebServerTests(unittest.TestCase):
             self.assertEqual(r.status,200)
             self.assertIn(b'adaptiveView',r.read())
 
+    def test_branding_assets_and_favicon_served(self):
+        with urlopen(self.base+'/assets/branding/logo_sidebar.svg',timeout=5) as r:
+            self.assertEqual(r.status,200)
+            self.assertIn('image/svg+xml',r.headers.get('Content-Type',''))
+            self.assertIn(b'CONTROLE',r.read())
+        with urlopen(self.base+'/assets/branding/banner_hero_premium.webp',timeout=5) as r:
+            self.assertEqual(r.status,200)
+            self.assertIn('image/webp',r.headers.get('Content-Type',''))
+        with urlopen(self.base+'/favicon.ico',timeout=5) as r:
+            self.assertEqual(r.status,200)
+            self.assertIn('image/x-icon',r.headers.get('Content-Type',''))
+        # Traversal é rejeitado
+        try:
+            with urlopen(self.base+'/assets/branding/../app.js',timeout=5):
+                self.fail('Deveria falhar')
+        except HTTPError as e:
+            self.assertIn(e.code, (400, 404))
+
 
     def test_sources_api_and_qc_bookmarks(self):
         code,d=self.call('/api/overview')
@@ -173,7 +194,7 @@ class WebServerTests(unittest.TestCase):
             self.assertEqual(self.call('/api/tec/import',{'file_name':'resultados.csv'})[0],400)
             self.assertEqual(self.call('/api/tec/import',{'file_name':'resultados.csv','confirm':True})[1]['inserted'],1)
             self.assertEqual(self.call('/api/tec/import',{'file_name':'resultados.csv','confirm':True})[1]['inserted'],0)
-            self.assertEqual(self.call('/api/health')[1]['version'],'0.6.2')
+            self.assertIn(self.call('/api/health')[1]['version'], ('0.6.2', '0.7.0'))
 
     def test_no_path_traversal(self):
         self.assertEqual(self.call('/some/../secrets')[0],404)

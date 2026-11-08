@@ -5,13 +5,16 @@ from datetime import date,timedelta
 from pathlib import Path
 from unittest.mock import patch
 
+import sys as _s, pathlib as _p; _s.path.insert(0, str(_p.Path(__file__).resolve().parent))
+from _isolation import isolate
 import core, sources, lesson_catalog, fiscal_path
 
 
 class FolderCatalogTests(unittest.TestCase):
     def setUp(self):
+        isolate(self)
         self.temp=tempfile.TemporaryDirectory()
-        self.root=Path(self.temp.name)
+        self.root=Path(self.temp.name).resolve()  # evita caminho curto 8.3 do Windows
         self.conn=core.connect(self.root/'fixture.db')
         self.external=self.root/'Controle-Mestre-main'/'MATERIAL TEÓRICO'
         self.external.mkdir(parents=True)

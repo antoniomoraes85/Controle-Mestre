@@ -1,3 +1,14 @@
+## v0.7.0 — Motor de cronogramas, identidade premium e testes herméticos (2026-11-08)
+
+- **Identidade visual premium:** Substituição da identidade verde-limão por paleta nobre em amarelo principal (#FFD600), amarelo intenso (#FFEA00), dourado (#D4A017) e grafite profundo (#101114).
+- **Símbolo e marca:** Peão de xadrez em posição de vitória superando o rei tombado, com brasão heráldico, livro aberto e ramos de louro em vetor SVG puro de alta precisão.
+- **Catálogo de assets:** Versões horizontal, vertical, ícone quadrado, favicon multi-resolução (.ico, .svg, .png), versões monocromáticas e adaptadas para fundo claro e menu lateral em web/assets/branding/. Originais do ChatGPT preservados em originals/.
+- **Banner hero com parallax:** Efeito parallax com 5 camadas independentes (fundo, iluminação, cena de xadrez, partículas e conteúdo), movimento suave via 
+equestAnimationFrame e aceleração por GPU, adaptável a dispositivos móveis e com suporte estrito a prefers-reduced-motion.
+- **Harmonização da interface:** Interface dark mode premium, com cronômetro, métricas, cartões, tabelas, modais e barra de navegação ajustados à nova paleta.
+- **Testes herméticos:** Suíte de 112 testes automatizados 100% aprovada através de isolamento sintético (	ests/_isolation.py), sem dependência de PDFs externos ou catálogo privado.
+- **Entrega 1 do motor de cronogramas:** Novo schedule.py aditivo com escala 24×72 configurável, ocorrências de indisponibilidade, ciclo contínuo por execução real, cronograma fixo e prévia/aplicação com backup verificado e controle de versão. Detalhes em docs/CRONOGRAMAS_V07_ENTREGA1.md.
+
 ## v0.6.2 — Correção do catálogo visível e integração inicial TEC Avançado (2026-11-07)
 
 - Corrigido bug de renderização: 125 aulas previamente cadastradas no CSV agora aparecem no painel **Materiais e TEC Concursos**, independentemente da descoberta de PDFs.

@@ -3,10 +3,13 @@ import sys, tempfile, unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+import sys as _s, pathlib as _p; _s.path.insert(0, str(_p.Path(__file__).resolve().parent))
+from _isolation import isolate
 import core,anki_bridge,fiscal_path,sources
 
 class AnkiBridgeTests(unittest.TestCase):
     def setUp(self):
+        isolate(self)
         self.tmp=tempfile.TemporaryDirectory()
         self.c=core.connect(Path(self.tmp.name)/'data.db')
     def tearDown(self):

@@ -7,10 +7,13 @@ from datetime import date,timedelta
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+import sys as _s, pathlib as _p; _s.path.insert(0, str(_p.Path(__file__).resolve().parent))
+from _isolation import isolate
 import core, sources, fiscal_path
 
 class FiscalPathTests(unittest.TestCase):
     def setUp(self):
+        isolate(self)
         self.temp=tempfile.TemporaryDirectory()
         self.c=core.connect(Path(self.temp.name)/'test.db')
         self.pdfpatch=patch.object(sources,'PDF_ROOT',Path(self.temp.name)/'docs')

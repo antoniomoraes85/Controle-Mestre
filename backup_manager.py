@@ -1,6 +1,7 @@
 """Backup online, verificado e local, do banco SQLite antes das migrações."""
 from __future__ import annotations
 import sqlite3
+from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
@@ -34,5 +35,6 @@ def make_backup(db_path: Path, backup_dir: Path, max_copies=15, force=False):
 
 
 def verify_backup(path):
-    with sqlite3.connect(f'file:{Path(path).resolve().as_posix()}?mode=ro',uri=True) as c:
+    # closing(): `with sqlite3.connect()` não fecha a conexão e trava o arquivo no Windows.
+    with closing(sqlite3.connect(f'file:{Path(path).resolve().as_posix()}?mode=ro',uri=True)) as c:
         return c.execute('PRAGMA quick_check').fetchone()[0]=='ok'

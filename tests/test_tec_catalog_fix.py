@@ -4,12 +4,15 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import sys as _s, pathlib as _p; _s.path.insert(0, str(_p.Path(__file__).resolve().parent))
+from _isolation import isolate
 import core
 import sources
 import lesson_catalog
 
 class TecCatalogTests(unittest.TestCase):
     def setUp(self):
+        isolate(self)
         self.tmp=tempfile.TemporaryDirectory()
         self.root=Path(self.tmp.name)
         self.c=core.connect(self.root/'test.db')
