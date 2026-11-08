@@ -37,7 +37,7 @@ export function adaptiveView(d, {heading, actionBtn}) {
       <p class="adaptive-rationale">${escapeHTML(x.explanation)} · ${x.accuracy===null?'Rendimento não aferido':pct(x.accuracy)} · ${x.due_reviews} revisão(ões) pendente(s)</p>
       <p class="adaptive-rationale"><b>Ação:</b> ${escapeHTML(x.action)}</p>
       <p class="adaptive-rationale"><b>Orientação:</b> ${escapeHTML(x.guidance)}</p>
-      ${x.dominant_batch_cause?`<p class="adaptive-rationale">Causa informada: ${escapeHTML(x.dominant_batch_cause)} (por bateria, não por questão)</p>`:''}
+      ${x.dominant_item_cause||x.dominant_batch_cause?`<p class="adaptive-rationale">Causa: ${escapeHTML(x.dominant_item_cause||x.dominant_batch_cause)} — ${escapeHTML(x.cause_scope)}</p>`:''}
       <small>${escapeHTML(x.evidence)}</small>
     </div></article>`).join(''):'<p class="subtitle">Ainda não há evidências suficientes para indicar reforços específicos.</p>';
   const reinforcementPanel=`<section class="panel" style="margin-bottom:18px">
