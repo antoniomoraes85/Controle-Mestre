@@ -72,6 +72,28 @@ class QuestionHistoryHTTPTests(unittest.TestCase):
             self.assertEqual(c.execute("SELECT COUNT(*) FROM questions WHERE source='error_tracking'").fetchone()[0],1)
         finally:c.close()
 
+    def test_history_merges_legacy_and_detailed_without_duplicates(self):
+        # Registro antigo: não tem metadados de bateria, mas não pode desaparecer.
+        c=core.connect()
+        try:
+            core.add_questions(c,day='2026-11-07',subject='Contabilidade Geral',
+                               topic='Estoques',total=12,correct=10,bank='FCC',
+                               platform='Qconcursos',source='manual')
+        finally:c.close()
+        status,new=self.call('/api/questions/batch',self.header(mode='batch'))
+        self.assertEqual(status,201)
+        status,history=self.call('/api/questions/history')
+        self.assertEqual(status,200)
+        items=history['items']
+        self.assertEqual(len(items),2)
+        self.assertEqual(len({item['id'] for item in items}),2)
+        legacy=next(item for item in items if item['subject']=='Contabilidade Geral')
+        detailed=next(item for item in items if item['subject']=='Direito Tributário')
+        self.assertIsNone(legacy['mode'])
+        self.assertEqual(legacy['banca'],'FCC')
+        self.assertEqual(detailed['mode'],'batch')
+        self.assertEqual(detailed['batch_id'],new['batch_id'])
+
     def test_individual_draft_survives_requests_and_finalizes_once(self):
         status,result=self.call('/api/questions/batch',self.header())
         self.assertEqual(status,201)
