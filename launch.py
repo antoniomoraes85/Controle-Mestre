@@ -24,7 +24,10 @@ ESSENTIAL = ('core.py', 'web_server.py', 'assessments.py',
              'sources.py', 'backup_manager.py', 'web/modules/sources.js',
              'fiscal_path.py', 'web/modules/fiscal.js', 'anki_bridge.py',
              'web/modules/anki_bridge.js', 'error_tracking.py',
-             'smart_reinforcement.py', 'web/modules/questions.js')
+             'smart_reinforcement.py', 'web/modules/questions.js',
+             'study_guide.py', 'study_time.py', 'bizu_seed.py', 'anki_analytics.py',
+             'web/modules/study_guide.js', 'web/modules/study_time.js',
+             'web/modules/study_timer.js', 'web/modules/anki_analytics.js')
 
 
 def _existing_controle_mestre(port: int) -> bool:
