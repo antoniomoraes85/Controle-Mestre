@@ -131,3 +131,17 @@ Essas faixas não são promessa de prazo, podem se sobrepor e pressupõem retrab
 | CM-026/027 | Importação autorizada de Qconcursos da v0.5.1 preservada | Importação real e anti-dupla-contagem de eventos individuais |
 
 **Testes:** 64 casos de Python + análise sintática do JS em ambiente isolado. **Nenhuma funcionalidade que dependa do Anki/Windows reais foi homologada.** O ZIP distribuído contém 18 pastas vazias e nenhum dado pessoal. Veja [GUIA v0.6.0](../GUIA_CONTROLE_MESTRE_V06.md).
+
+## Progresso do catálogo privado — v0.6.1 (07/11/2026)
+
+**Evidência:** screenshots de hierarquia de pastas no Windows, listas de aulas em mensagem do usuário e arquivo complementar de Direito Tributário. Não foram fornecidos PDFs reais do curso nesta etapa; as capturas não demonstram conteúdo ou presença dos PDFs dentro das subpastas.
+
+- **125 aulas catalogadas:** Contabilidade Geral 33, Custos 8, Análise das Demonstrações 5, Direito Tributário 23, Reforma EC 132/LC 214 15, Reforma LC 227 8, Direito Constitucional 18 e Direito Administrativo 15.
+- **Direito Civil:** disciplina mantida, mas lista de aulas ausente; nenhum assunto de aula fabricado.
+- **Código:** `lesson_catalog.py` referencia `dados/catalogo/aulas_primeiro_ciclo.csv`, excluído do GitHub; `sources.py` detecta `MATERIAL TEÓRICO` como pasta irmã ou caminho confirmado no app, suporta pastas numeradas e tipos Teoria Principal, Simplificado, Passo Estratégico e Questões; `fiscal_path.py` agenda aulas do catálogo em novas semanas e preserva registros antigos.
+- **Integração pessoal:** a pasta `ANKI` contém dados CSV, planilha macro e módulos VBA no computador do titular, mas a v0.6.1 não os importa automaticamente nem altera FSRS.
+- **Validação:** 70 testes Python e sintaxe JS aprovados; inspeção real no Windows e conferência dos PDFs continuam pendentes.
+- **Issues relacionadas:** CM-009/010 (catálogo), CM-012 (agendamento), CM-024/025 (arquivos e direitos), CM-004 (Windows), CM-021/022 (Anki).
+- **Ação:** homologar scanner do acervo real, conferir correção de vínculos sem duplicar materiais, solicitar sumário de Direito Civil e mapear aulas a uma versão oficial do edital.
+
+Nenhuma issue foi concluída em razão desta entrega. Metadados detalhados do curso e PDFs ficam exclusivamente na distribuição pessoal do titular.
