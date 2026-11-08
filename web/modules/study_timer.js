@@ -43,7 +43,7 @@ export function createStudyTimer({api,onSaved,onError,getSubjects}){
       }
       select.value=subjects.includes(state.subject)?state.subject:'';
       select.disabled=state.running||busy||elapsed()>0;
-      if(!subjects.includes(state.subject))state.subject='';
+      if(subjects.length&&state.subject&&!subjects.includes(state.subject))state.subject='';
     }
     if(mode)mode.textContent=state.running?'Contabilizando':elapsed()>0?'Pausado / a salvar':'Tempo líquido';
     start.disabled=state.running||busy;
