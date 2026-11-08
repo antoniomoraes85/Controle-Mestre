@@ -16,7 +16,7 @@ from urllib.parse import parse_qs, urlsplit
 from anki_bridge import local_status as anki_status, detect as anki_detect, collect_snapshot as anki_collect, save_snapshot as anki_save
 from adaptive import diagnose, preview_plan, apply_plan
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
-from sources import status as sources_status, scan_pdfs, assign_material, register_bookmark, preview_csv, import_csv, set_external_root, path_for_material
+from sources import status as sources_status, scan_pdfs, assign_material, register_bookmark, register_tec_bookmark, preview_csv, import_csv, set_external_root, path_for_material
 from fiscal_path import status as fiscal_status, activate as fiscal_activate, preview_week as fiscal_preview_week, apply_week as fiscal_apply_week, complete_task as fiscal_complete_task
 from core import (ROOT, connect, all_rows, metric_data, subject_metrics,
                   get_days, save_day, generate_plan, add_session, add_questions,
@@ -76,7 +76,7 @@ def overview(c, today=None):
 
 
 class AppHandler(BaseHTTPRequestHandler):
-    server_version='ControleMestreLocal/0.6.1'
+    server_version='ControleMestreLocal/0.6.2'
     def log_message(self, fmt, *args):
         # Do not log user payloads.
         pass
@@ -135,7 +135,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.6.1','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.6.2','mode':'private-local','multiuser':False})
         if route=='/':route='/index.html'
         static={'/index.html':'text/html; charset=utf-8','/style.css':'text/css; charset=utf-8',
                 '/app.js':'text/javascript; charset=utf-8'}
@@ -187,6 +187,15 @@ class AppHandler(BaseHTTPRequestHandler):
             if route=='/api/sources/material':
                 return self._json(200,assign_material(c,args['id'], args.get('subject',''),
                     args.get('topic',''),args.get('course',''),args.get('lesson',''),args.get('material_type')))
+            if route=='/api/tec/bookmark':
+                return self._json(201,register_tec_bookmark(c,args['title'],args['url'],
+                    args.get('subject',''),args.get('topic','')))
+            if route=='/api/tec/preview':
+                return self._json(200,preview_csv(c,args['file_name'],provider='TEC Concursos'))
+            if route=='/api/tec/import':
+                if args.get('confirm') is not True:
+                    raise ValueError('Confirme a importação dos resultados TEC.')
+                return self._json(200,import_csv(c,args['file_name'],provider='TEC Concursos'))
             if route=='/api/qconcursos/bookmark':
                 return self._json(201,register_bookmark(c,args['title'],args['url'],
                     args.get('subject',''),args.get('topic','')))
