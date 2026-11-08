@@ -48,6 +48,17 @@ export async function renderQuestionsPanel(container, subjects, afterSave = null
       sessionStorage.removeItem('cm_active_question_batch');
     }
   }
+  let draftItems = [];
+  try {
+    draftItems = (await api('questions/drafts')).items || [];
+    if (!_activeBatchId && draftItems.length) {
+      const recent = draftItems[0];
+      _activeBatchId = recent.id;
+      _activeBatchDetails = recent;
+      _currentMode = 'individual';
+      sessionStorage.setItem('cm_active_question_batch', String(recent.id));
+    }
+  } catch (_) { /* Compatibilidade com versões anteriores da API. */ }
   const consts = await getConstants();
   container.innerHTML = `
     <section class="questions-panel" aria-label="Registro de Questões">
@@ -65,6 +76,13 @@ export async function renderQuestionsPanel(container, subjects, afterSave = null
         </button>
       </div>
 
+      <div class="info-box" style="margin:12px 0">
+        <b>Histórico salvo:</b> todas as baterias finalizadas são registradas no SQLite local.
+        Rascunhos podem ser retomados após fechar o navegador.
+      </div>
+      ${draftItems.length ? `<div class="panel-content" style="margin-bottom:12px"><strong>Rascunhos recuperáveis</strong>
+        ${draftItems.map(item => `<button type="button" class="btn-secondary" style="margin:4px"
+        data-q-action="resume" data-batch-id="${item.id}">#${item.id} — ${_esc(item.subject)} (${item.items_added}/${item.total})</button>`).join('')}</div>` : ''}
       <div id="questions-form-area"></div>
       <div id="questions-feedback" class="feedback-area" aria-live="polite"></div>
     </section>
@@ -78,6 +96,7 @@ export async function renderQuestionsPanel(container, subjects, afterSave = null
     if (action === 'setMode') setMode(btn.dataset.mode);
     else if (action === 'pickResult') pickResult(btn);
     else if (action === 'finalizeBatch') clearActiveBatch();
+    else if (action === 'resume') resumeBatch(Number(btn.dataset.batchId));
   });
   container.addEventListener('submit', event => {
     const form = event.target.closest('[data-q-form]');
@@ -386,6 +405,29 @@ function _individualFormHTML(subjects, consts) {
 // ---------------------------------------------------------------------------
 // Handlers de eventos — toggle de modo
 // ---------------------------------------------------------------------------
+export async function resumeBatch(batchId) {
+  try {
+    const batch = await api('questions/batch/' + batchId);
+    if (batch.status !== 'draft' || batch.mode !== 'individual') throw new Error('Rascunho indisponível');
+    _activeBatchId = batchId;
+    _activeBatchDetails = batch;
+    _currentMode = 'individual';
+    sessionStorage.setItem('cm_active_question_batch',String(batchId));
+    const consts = await getConstants();
+    const container = document.querySelector('.questions-panel');
+    if (container) {
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        const active = btn.dataset.mode === 'individual';
+        btn.classList.toggle('mode-active',active);
+        btn.setAttribute('aria-selected',String(active));
+      });
+      _renderModeForm(container.parentElement,_subjects,consts);
+    }
+  } catch (error) {
+    _setFeedback(document.getElementById('questions-feedback'),'error',error.message);
+  }
+}
+
 export function setMode(mode) {
   _currentMode = mode;
   document.querySelectorAll('.mode-btn').forEach(btn => {
