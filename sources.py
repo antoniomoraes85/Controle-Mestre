@@ -31,7 +31,9 @@ def external_root(c):
     row = c.execute('SELECT value FROM settings WHERE key=?',(EXTERNAL_SETTING,)).fetchone()
     candidates=([Path(row[0])] if row and row[0] else []) + [
         ROOT.parent / 'MATERIAL TEÓRICO', ROOT.parent / 'MATERIAL TEORICO',
-        ROOT / 'MATERIAL TEÓRICO']
+        ROOT / 'MATERIAL TEÓRICO',
+        Path.home() / 'Desktop' / 'CONTROLE_MESTRE' / 'MATERIAL TEÓRICO',
+        Path.home() / 'Desktop' / 'CONTROLE_MESTRE' / 'MATERIAL TEORICO']
     # Windows: títulos podem usar grafias/maiúsculas diferentes; verificar apenas
     # irmãos da aplicação, sem buscas amplas no computador ou acesso à nuvem.
     try:
