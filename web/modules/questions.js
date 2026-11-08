@@ -582,6 +582,10 @@ export async function clearActiveBatch() {
 // Caderno de Erros — visualização
 // ---------------------------------------------------------------------------
 export async function renderCaderno(container, filters = {}) {
+  container.addEventListener('change', event => {
+    const select = event.target.closest('[data-q-change="correction"]');
+    if (select) updateCorrection(select);
+  }, {once:false});
   container.innerHTML = '<p class="loading">Carregando caderno de erros…</p>';
   try {
     const params = new URLSearchParams();
