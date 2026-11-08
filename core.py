@@ -83,6 +83,17 @@ def connect(path=None):
     CREATE TABLE IF NOT EXISTS question_batches (id INTEGER PRIMARY KEY, day TEXT NOT NULL, subject TEXT NOT NULL, topic TEXT NOT NULL DEFAULT '', platform TEXT NOT NULL DEFAULT '', banca TEXT NOT NULL DEFAULT '', total INTEGER NOT NULL CHECK(total>=1), correct INTEGER NOT NULL CHECK(correct>=0 AND correct<=total), unanswered INTEGER NOT NULL DEFAULT 0 CHECK(unanswered>=0), time_used_min REAL NOT NULL DEFAULT 0, had_prior_review INTEGER NOT NULL DEFAULT 0, gabarito_timing TEXT NOT NULL DEFAULT 'Não consultado', mode TEXT NOT NULL DEFAULT 'batch' CHECK(mode IN ('batch','individual')), cause_counts TEXT NOT NULL DEFAULT '{}', notes TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT 'web', created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS question_items (id INTEGER PRIMARY KEY, batch_id INTEGER NOT NULL REFERENCES question_batches(id), question_ref TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL, topic TEXT NOT NULL DEFAULT '', subtopic TEXT NOT NULL DEFAULT '', result TEXT NOT NULL CHECK(result IN ('Correta','Incorreta','Não resolvida')), primary_cause TEXT NOT NULL DEFAULT 'Não especificado', secondary_causes TEXT NOT NULL DEFAULT '[]', observation TEXT NOT NULL DEFAULT '', difficulty TEXT NOT NULL DEFAULT '', resolution_time_s INTEGER NOT NULL DEFAULT 0, consulted_gabarito INTEGER NOT NULL DEFAULT 0, needs_reinforcement INTEGER NOT NULL DEFAULT 0, correction_status TEXT NOT NULL DEFAULT 'Aberto', created_at TEXT NOT NULL);
     ''')
+    # Evolução aditiva das baterias: registros históricos preexistentes permanecem
+    # identificados como 'legacy', sem reconstruir ou duplicar o feed anterior.
+    batch_cols={row[1] for row in c.execute('PRAGMA table_info(question_batches)').fetchall()}
+    if 'status' not in batch_cols:
+        c.execute("ALTER TABLE question_batches ADD COLUMN status TEXT NOT NULL DEFAULT 'legacy'")
+    if 'legacy_question_id' not in batch_cols:
+        c.execute('ALTER TABLE question_batches ADD COLUMN legacy_question_id INTEGER')
+    if 'request_id' not in batch_cols:
+        c.execute('ALTER TABLE question_batches ADD COLUMN request_id TEXT')
+    c.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_qb_request_id ON question_batches(request_id) WHERE request_id IS NOT NULL')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_qi_batch ON question_items(batch_id)')
     columns={r[1] for r in c.execute('PRAGMA table_info(sessions)').fetchall()}
     if 'cycle' not in columns:c.execute('ALTER TABLE sessions ADD COLUMN cycle INTEGER')
     for name,weight,area in DEFAULT_SUBJECTS:

@@ -194,7 +194,7 @@ class WebServerTests(unittest.TestCase):
             self.assertEqual(self.call('/api/tec/import',{'file_name':'resultados.csv'})[0],400)
             self.assertEqual(self.call('/api/tec/import',{'file_name':'resultados.csv','confirm':True})[1]['inserted'],1)
             self.assertEqual(self.call('/api/tec/import',{'file_name':'resultados.csv','confirm':True})[1]['inserted'],0)
-            self.assertIn(self.call('/api/health')[1]['version'], ('0.6.2', '0.7.0'))
+            self.assertIn(self.call('/api/health')[1]['version'], ('0.6.2', '0.7.0', '0.8.1'))
 
     def test_no_path_traversal(self):
         self.assertEqual(self.call('/some/../secrets')[0],404)

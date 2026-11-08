@@ -18,6 +18,7 @@ from error_tracking import (
     CORRECTION_STATUSES,
     GABARITO_TIMINGS,
     feed_performance,
+    finalize_batch,
     get_batch,
     get_caderno_erros,
     get_error_summary,
@@ -270,10 +271,15 @@ class TestGetErrorSummary(unittest.TestCase):
                              cause_counts={'Desconhecimento': 2, 'Esquecimento': 1})
         b2 = register_batch(self.c, day='2026-11-07', subject='Direito Tributário',
                              total=5, correct=4, cause_counts={'Desconhecimento': 1})
-        register_question_item(self.c, batch_id=b1, subject='Direito Tributário',
+        finalize_batch(self.c, b1)
+        finalize_batch(self.c, b2)
+        b3 = register_batch(self.c, day='2026-11-08', subject='Direito Tributário',
+                             total=2, correct=0, mode='individual')
+        register_question_item(self.c, batch_id=b3, subject='Direito Tributário',
                                 result='Incorreta', primary_cause='Esquecimento')
-        register_question_item(self.c, batch_id=b2, subject='Direito Tributário',
+        register_question_item(self.c, batch_id=b3, subject='Direito Tributário',
                                 result='Incorreta', primary_cause='Desconhecimento')
+        finalize_batch(self.c,b3)
 
     def tearDown(self):
         self.c.close()
@@ -281,13 +287,13 @@ class TestGetErrorSummary(unittest.TestCase):
 
     def test_totais_corretos(self):
         s = get_error_summary(self.c)
-        self.assertEqual(s['totals']['questions'], 15)
+        self.assertEqual(s['totals']['questions'], 17)
         self.assertEqual(s['totals']['correct'], 11)
-        self.assertEqual(s['totals']['incorrect'], 4)
+        self.assertEqual(s['totals']['incorrect'], 6)
 
     def test_taxa_calculada(self):
         s = get_error_summary(self.c)
-        self.assertAlmostEqual(s['totals']['rate'], 11 / 15, places=4)
+        self.assertAlmostEqual(s['totals']['rate'], 11 / 17, places=4)
 
     def test_causas_bateria_agregadas(self):
         s = get_error_summary(self.c)
@@ -305,15 +311,15 @@ class TestGetErrorSummary(unittest.TestCase):
         self.assertIn('item_primary_causes', s['note'])
 
     def test_filtro_por_disciplina(self):
-        register_batch(self.c, day='2026-11-08', subject='Contabilidade Geral',
-                       total=5, correct=5)
+        b = register_batch(self.c, day='2026-11-08', subject='Contabilidade Geral',
+                           total=5, correct=5)
+        finalize_batch(self.c,b)
         s = get_error_summary(self.c, subject='Direito Tributário')
-        self.assertEqual(s['totals']['questions'], 15)
+        self.assertEqual(s['totals']['questions'], 17)
 
     def test_filtro_por_since(self):
         s = get_error_summary(self.c, since='2026-11-08')
-        # Apenas b1 é de 2026-11-08
-        self.assertEqual(s['totals']['questions'], 10)
+        self.assertEqual(s['totals']['questions'], 12)
 
     def test_sem_dados_taxa_none(self):
         c2, tmp2 = _db()
