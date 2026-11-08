@@ -8,6 +8,7 @@ import csv
 import hashlib
 import io
 import re
+import os
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -19,6 +20,81 @@ QC_ROOT = ROOT / 'dados' / 'importacoes' / 'qconcursos'
 MAX_PDF_SIZE = 150 * 1024 * 1024
 MAX_CSV_SIZE = 2 * 1024 * 1024
 MAX_FILES = 500
+EXTERNAL_PREFIX = '@externo/'
+EXTERNAL_SETTING = 'materials_external_root'
+
+
+def external_root(c):
+    """Pasta explícita ou irmã da aplicação; nunca exige copiar os PDFs."""
+    c.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
+    row = c.execute('SELECT value FROM settings WHERE key=?',(EXTERNAL_SETTING,)).fetchone()
+    candidates=([Path(row[0])] if row and row[0] else []) + [
+        ROOT.parent / 'MATERIAL TEÓRICO', ROOT.parent / 'MATERIAL TEORICO',
+        ROOT / 'MATERIAL TEÓRICO']
+    for p in candidates:
+        if p.is_dir() and not p.is_symlink() and norm(p.name)=='material teorico':
+            return p.resolve()
+    return None
+
+
+def set_external_root(c, path, confirm=False):
+    if confirm is not True:raise ValueError('Confirmação explícita obrigatória.')
+    if not isinstance(path,str) or not 3 <= len(path) <= 1000:
+        raise ValueError('Informe o caminho da pasta MATERIAL TEÓRICO.')
+    p=Path(path.strip().strip('"'))
+    if not p.is_absolute() or not p.is_dir() or p.is_symlink() or norm(p.name)!='material teorico':
+        raise ValueError('Selecione uma pasta local existente chamada MATERIAL TEÓRICO.')
+    c.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+              (EXTERNAL_SETTING,str(p.resolve())))
+    c.commit()
+    return {'ok':True,'external_root':str(p.resolve()),'note':'Nenhum arquivo foi movido ou copiado.'}
+
+
+def roots(c):
+    internal=PDF_ROOT.resolve()
+    external=external_root(c)
+    return [('internal',internal)] + ([('external',external)] if external and external != internal else [])
+
+
+def path_for_key(c, key):
+    if key.startswith(EXTERNAL_PREFIX):
+        root=external_root(c)
+        if not root:raise ValueError('Pasta externa não está disponível; confira a unidade ou configure o caminho.')
+        part=key[len(EXTERNAL_PREFIX):]
+    else:
+        root=PDF_ROOT.resolve()
+        part=key
+    dest=root / part
+    if dest.is_symlink() or not dest.resolve().is_relative_to(root):
+        raise ValueError('PDF fora da pasta autorizada')
+    return dest
+
+
+def detect_subject(folder):
+    x=norm(folder)
+    if 'reforma tributaria' in x and '227' in x:return 'Reforma Tributária — LC 227'
+    if 'reforma tributaria' in x and ('132' in x or '214' in x):return 'Reforma Tributária — EC 132 e LC 214'
+    candidate=map_subject(folder)
+    return candidate if candidate in (
+        'Contabilidade Geral', 'Contabilidade de Custos', 'Análise das Demonstrações Contábeis',
+        'Direito Tributário','Reforma Tributária — EC 132 e LC 214','Reforma Tributária — LC 227',
+        'Direito Administrativo','Direito Civil','Direito Constitucional') else ''
+
+
+def detect_type(folder):
+    x=norm(folder)
+    if 'passo' in x:return 'Passo Estratégico'
+    if 'questoes' in x:return 'Questões'
+    if 'simplificad' in x:return 'Simplificado'
+    return 'Teoria'
+
+
+def detect_lesson(filename):
+    m=re.search(r'(?<![A-Za-z])aula[\s._-]*(demo|\d{1,3})(?![0-9])',filename,re.I)
+    if not m:return ''
+    aula='Aula demo' if m[1].lower()=='demo' else 'Aula '+m[1].zfill(2)
+    if re.search(r'(?<![A-Za-z])parte[\s._-]*(?:ii|2)(?![A-Za-z0-9])',filename,re.I):aula+=' - Parte II'
+    return aula
 
 
 def prepare(c):
@@ -69,66 +145,64 @@ def hash_file(path):
 
 
 def scan_pdfs(c):
-    """Index only PDF files under a fixed private directory; never copy bytes."""
+    """Catalogar PDFs internos e pasta externa irmã. Apenas metadados locais."""
     prepare(c)
-    PDF_ROOT.mkdir(parents=True, exist_ok=True)
-    files = sorted(PDF_ROOT.rglob('*.pdf'))
-    if len(files) > MAX_FILES:
+    PDF_ROOT.mkdir(parents=True,exist_ok=True)
+    targets=[]
+    for category,root in roots(c):
+        targets.extend((category,root,p) for p in root.rglob('*')
+                       if p.is_file() and p.suffix.lower()=='.pdf')
+    if len(targets)>MAX_FILES:
         raise ValueError(f'Limite de {MAX_FILES} PDFs por varredura excedido.')
-    found, errors = 0, []
-    for p in files:
-        if p.is_symlink() or not p.is_file() or not p.resolve().is_relative_to(PDF_ROOT.resolve()):
-            errors.append(f'Arquivo inválido/atalho: {p.name}')
-            continue
-        size = p.stat().st_size
-        if not (4 <= size <= MAX_PDF_SIZE):
-            errors.append(f'Arquivo fora do limite: {p.name}')
-            continue
-        with p.open('rb') as file:
-            if file.read(5) != b'%PDF-':
-                errors.append(f'Não é PDF válido: {p.name}')
-                continue
-        key = p.relative_to(PDF_ROOT).as_posix()
-        folder=norm(str(Path(key).parent))
-        material_type='Passo Estratégico' if 'passo' in folder else 'Teoria'
-        rel_parts=Path(key).parts
-        subject_folder=rel_parts[1] if len(rel_parts)>=3 else ''
-        folder_norm=norm(subject_folder)
-        if 'reforma tributaria' in folder_norm and '227' in folder_norm:
-            auto_subject='Reforma Tributária — LC 227'
-        elif 'reforma tributaria' in folder_norm and ('132' in folder_norm or '214' in folder_norm):
-            auto_subject='Reforma Tributária — EC 132 e LC 214'
-        else:
-            auto_subject=map_subject(subject_folder) if subject_folder else ''
-        if auto_subject and not c.execute('SELECT 1 FROM subjects WHERE name=?',(auto_subject,)).fetchone():
-            auto_subject=''
-        existing = c.execute('SELECT digest,material_type,subject FROM study_materials WHERE relative_path=?', (key,)).fetchone()
-        digest = hash_file(p)
-        if existing and existing[0] == digest and existing[1]==material_type:
-            if not existing[2] and auto_subject:
+    found,errors,seen=0,[],set()
+    for category,root,p in sorted(targets,key=lambda x:str(x[2]).casefold()):
+        if p.is_symlink() or not p.resolve().is_relative_to(root.resolve()):
+            errors.append('Link ou arquivo fora da pasta: '+p.name);continue
+        size=p.stat().st_size
+        if not 4<=size<=MAX_PDF_SIZE:
+            errors.append('PDF fora do limite: '+p.name);continue
+        with p.open('rb') as f:
+            if f.read(5)!=b'%PDF-':
+                errors.append('Arquivo sem assinatura PDF: '+p.name);continue
+        rel=p.relative_to(root).as_posix()
+        key=(EXTERNAL_PREFIX if category=='external' else '')+rel
+        seen.add(key)
+        parts=p.relative_to(root).parts
+        # Externo: "1 - Disciplina / Teoria Principal / Aula 00.pdf"
+        # Interno: "Teoria / Disciplina / Aula 00.pdf" (v0.6)
+        subject_folder=parts[0] if category=='external' else (parts[1] if len(parts)>=3 else '')
+        auto_subject=detect_subject(subject_folder)
+        material_type=detect_type(str(p.parent.relative_to(root)))
+        existing=c.execute('SELECT digest,material_type,subject,lesson FROM study_materials WHERE relative_path=?',(key,)).fetchone()
+        digest=hash_file(p)
+        lesson=detect_lesson(p.name)
+        if existing and existing['digest']==digest and existing['material_type']==material_type:
+            # Migração não destrutiva: preencher campos vazios, nunca sobrescrever vínculo manual.
+            if auto_subject and not existing['subject']:
                 c.execute('UPDATE study_materials SET subject=? WHERE relative_path=?',(auto_subject,key))
-            found += 1
-            continue
-        pages, title = pdf_metadata(p)
-        guess = re.search(r'(?:aula)[-_\s]*(\d{1,3})', p.name, re.IGNORECASE)
-        lesson = ('Aula ' + guess.group(1).zfill(2)) if guess else ''
+            if lesson and not existing['lesson']:
+                c.execute('UPDATE study_materials SET lesson=? WHERE relative_path=?',(lesson,key))
+            c.execute("UPDATE study_materials SET status='Disponível' WHERE relative_path=?",(key,))
+            found+=1;continue
+        pages,title=pdf_metadata(p)
         c.execute('''INSERT INTO study_materials
           (relative_path,file_name,digest,size_bytes,pages,lesson,pdf_title,updated_at,status,material_type,subject)
           VALUES (?,?,?,?,?,?,?,?, 'Disponível',?,?)
           ON CONFLICT(relative_path) DO UPDATE SET digest=excluded.digest,
             size_bytes=excluded.size_bytes,pages=excluded.pages,
+            lesson=COALESCE(NULLIF(study_materials.lesson,''),excluded.lesson),
             pdf_title=excluded.pdf_title,updated_at=excluded.updated_at,status='Disponível',
             material_type=excluded.material_type,
             subject=COALESCE(NULLIF(study_materials.subject,''),excluded.subject) ''',
-          (key, p.name, digest, size, pages, lesson, title, datetime.now().isoformat(timespec='seconds'),material_type,auto_subject))
-        found += 1
-    known = c.execute('SELECT id,relative_path FROM study_materials').fetchall()
-    for row in known:
-        path = PDF_ROOT / row['relative_path']
-        if not path.is_file():
-            c.execute("UPDATE study_materials SET status='Ausente' WHERE id=?", (row['id'],))
+          (key,p.name,digest,size,pages,lesson,title,datetime.now().isoformat(timespec='seconds'),material_type,auto_subject))
+        found+=1
+    for row in c.execute('SELECT id,relative_path FROM study_materials').fetchall():
+        if row['relative_path'] not in seen:
+            # Não apagar históricos ou vínculos já registrados.
+            c.execute("UPDATE study_materials SET status='Ausente' WHERE id=?",(row['id'],))
     c.commit()
-    return {'scanned': found, 'errors': errors[:30]}
+    return {'scanned':found,'errors':errors[:30],
+            'roots':[{'kind':kind,'path':str(root)} for kind,root in roots(c)]}
 
 
 def list_materials(c):
@@ -149,7 +223,7 @@ def assign_material(c, ident, subject='', topic='', course='', lesson='', materi
     if material_type is None:
         c.execute('''UPDATE study_materials SET subject=?,topic=?,course=?,lesson=? WHERE id=?''', (*fields, ident))
     else:
-        if material_type not in ('Teoria','Passo Estratégico'):raise ValueError('Tipo de material inválido')
+        if material_type not in ('Teoria','Passo Estratégico','Questões','Simplificado'):raise ValueError('Tipo de material inválido')
         c.execute('''UPDATE study_materials SET subject=?,topic=?,course=?,lesson=?,material_type=? WHERE id=?''', (*fields,material_type, ident))
     c.commit()
     return {'ok': True}
@@ -298,8 +372,11 @@ def import_csv(c, file_name):
 
 
 def status(c):
+    from lesson_catalog import status as lesson_status
     return {'materials':list_materials(c),'bookmarks':list_bookmarks(c),
-            'csv_files':list_csv_files()}
+            'csv_files':list_csv_files(),
+            'roots':[{'kind':kind,'path':str(root)} for kind,root in roots(c)],
+            'catalog':lesson_status(c)}
 
 
 def path_for_material(c,ident):
@@ -308,8 +385,8 @@ def path_for_material(c,ident):
     if isinstance(ident,bool) or not isinstance(ident,int):raise ValueError('ID de PDF inválido')
     row=c.execute("SELECT relative_path,status FROM study_materials WHERE id=?",(ident,)).fetchone()
     if not row or row['status']!='Disponível':raise ValueError('PDF não encontrado')
-    target=PDF_ROOT / row['relative_path']
-    if target.is_symlink() or not target.is_file() or not target.resolve().is_relative_to(PDF_ROOT.resolve()):
+    target=path_for_key(c,row['relative_path'])
+    if not target.is_file():
         raise ValueError('Caminho de PDF inválido')
     if target.stat().st_size>MAX_PDF_SIZE:
         raise ValueError('Arquivo inválido')
