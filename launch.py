@@ -23,7 +23,8 @@ ESSENTIAL = ('core.py', 'web_server.py', 'assessments.py',
              'web/modules/assessments.js', 'adaptive.py', 'web/modules/adaptive.js',
              'sources.py', 'backup_manager.py', 'web/modules/sources.js',
              'fiscal_path.py', 'web/modules/fiscal.js', 'anki_bridge.py',
-             'web/modules/anki_bridge.js')
+             'web/modules/anki_bridge.js', 'error_tracking.py',
+             'smart_reinforcement.py', 'web/modules/questions.js')
 
 
 def _existing_controle_mestre(port: int) -> bool:
@@ -33,7 +34,7 @@ def _existing_controle_mestre(port: int) -> bool:
             return (resp.status == 200 and info.get('ok') is True
                     and info.get('app') == 'CONTROLE MESTRE'
                     and info.get('mode') == 'private-local'
-                    and info.get('version') == '0.6.2')
+                    and info.get('version') == '0.8.1')
     except (OSError, HTTPError, URLError, ValueError, TypeError):
         return False
 
@@ -70,8 +71,10 @@ def check_environment():
     import core
     import web_server  # noqa: F401
     from backup_manager import make_backup
-    bkp = make_backup(core.DB_PATH, ROOT / 'dados' / 'backups')
+    bkp = make_backup(core.DB_PATH, core.DB_PATH.parent / 'backups')
     if bkp: print(f'Backup diario verificado: {bkp.name}')
+    print(f'Historico persistente: {core.DB_PATH.resolve()}')
+    print(f'Backups automaticos: {(core.DB_PATH.parent / "backups").resolve()}')
     conn = core.connect()
     try:
         conn.execute('SELECT 1').fetchone()
