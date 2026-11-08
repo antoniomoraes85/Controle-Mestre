@@ -24,9 +24,9 @@ class FiscalPathTests(unittest.TestCase):
         return self.week+timedelta(days=7)
     def test_activate_explicit_and_idempotent(self):
         self.assertFalse(fiscal_path.status(self.c)['active'])
-        self.assertEqual(fiscal_path.activate(self.c)['created'],50)
+        self.assertEqual(fiscal_path.activate(self.c)['created'],175)  # 50 históricos + 125 aulas fornecidas
         self.assertEqual(fiscal_path.activate(self.c)['created'],0)
-        self.assertEqual(self.c.execute('SELECT COUNT(*) FROM fiscal_topics').fetchone()[0],50)
+        self.assertEqual(self.c.execute('SELECT COUNT(*) FROM fiscal_topics').fetchone()[0],175)
         self.assertEqual(self.c.execute('SELECT COUNT(*) FROM plans').fetchone()[0],0)
     def test_preview_no_side_effect_and_only_valid_dates(self):
         fiscal_path.activate(self.c)
