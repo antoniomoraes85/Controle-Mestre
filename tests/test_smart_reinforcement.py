@@ -15,6 +15,8 @@ class ReinforcementTests(unittest.TestCase):
             CREATE TABLE questions(day TEXT,subject TEXT,topic TEXT,total INTEGER,correct INTEGER,error_type TEXT);
             CREATE TABLE reviews(subject TEXT,topic TEXT,due_on TEXT,status TEXT);
             CREATE TABLE errors(subject TEXT,topic TEXT,status TEXT);
+            CREATE TABLE question_batches(id INTEGER PRIMARY KEY,day TEXT,subject TEXT,topic TEXT,status TEXT);
+            CREATE TABLE question_items(id INTEGER PRIMARY KEY,batch_id INTEGER,result TEXT,primary_cause TEXT,needs_reinforcement INTEGER);
         """)
 
     def tearDown(self):
@@ -70,6 +72,16 @@ class ReinforcementTests(unittest.TestCase):
         two=recommend(self.c,'2026-11-08')
         self.assertEqual(one,two)
         self.assertEqual(before,self.c.total_changes)
+
+    def test_causa_individual_tem_precedencia_a_bateria(self):
+        self.q('Obrigação tributária',20,5,'Falta de atenção')
+        self.c.execute("INSERT INTO question_batches VALUES (1,'2026-11-07','Direito Tributário','Obrigação tributária','finalized')")
+        self.c.execute("INSERT INTO question_items VALUES (1,1,'Incorreta','Confusão conceitual',1)")
+        row=self.item('Obrigação tributária')
+        self.assertEqual(row['dominant_item_cause'],'Confusão conceitual')
+        self.assertIsNone(row['dominant_batch_cause'])
+        self.assertIn('quadro comparativo',row['guidance'])
+        self.assertEqual(row['marked_items'],1)
 
     def test_invalid_limits_rejected(self):
         with self.assertRaises(ValueError):recommend(self.c,'2026-11-08',min_questions=0)
