@@ -145,6 +145,24 @@ class AppHandler(BaseHTTPRequestHandler):
             finally:c.close()
         if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.1','mode':'private-local','multiuser':False})
         # --- Rastreamento de erros ---
+        if route=='/api/questions/drafts':
+            c=connect()
+            try:
+                drafts=all_rows(c, """SELECT id,day,subject,topic,total,correct,unanswered,mode,status,
+                    (SELECT COUNT(*) FROM question_items qi WHERE qi.batch_id=qb.id) AS items_added
+                    FROM question_batches qb WHERE status='draft' AND mode='individual'
+                    ORDER BY created_at DESC, id DESC LIMIT 100""")
+                return self._json(200,{'items':drafts})
+            finally:c.close()
+        if route=='/api/questions/history':
+            c=connect()
+            try:
+                rows=all_rows(c, """SELECT id,day,subject,topic,platform,banca,total,correct,
+                    unanswered,mode,status,legacy_question_id
+                    FROM question_batches WHERE status='finalized'
+                    ORDER BY day DESC,id DESC LIMIT 200""")
+                return self._json(200,{'items':rows})
+            finally:c.close()
         if route=='/api/questions/caderno':
             c=connect()
             try:
