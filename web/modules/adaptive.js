@@ -28,7 +28,22 @@ export function adaptiveView(d, {heading, actionBtn}) {
       </div><strong class="adaptive-score">${fmt(x.score)}</strong></article>`).join(''):'<p class="subtitle">Ainda não existem disciplinas ou assuntos suficientes para gerar prioridades.</p>';
   const tasks=(plan.tasks||[]).slice(0,25).map(x=>`<tr><td>${dateFmt(x.day)}</td><td>${escapeHTML(x.subject)}<br><small>${escapeHTML(x.topic)}</small></td><td>${escapeHTML(x.method)}</td><td>${fmtHour(x.target_minutes)}</td></tr>`).join('');
   const table=tasks?`<div class="table-wrap"><table class="act-table"><thead><tr><th>Dia</th><th>Disciplina / assunto</th><th>Método</th><th>Tempo</th></tr></thead><tbody>${tasks}</tbody></table></div>`:'<div class="panel-content"><p class="subtitle">Nenhuma tarefa foi sugerida para a disponibilidade configurada.</p></div>';
-  return `${header}${summary}${warning}${intro}<div class="small-grid"><section class="panel">
+  const reinforce=(d.reinforcements?.items||[]).slice(0,6);
+  const reinforceContent=reinforce.length?reinforce.map(x=>`<article class="adaptive-item">
+    <div class="adaptive-info">
+      <div class="adaptive-label"><b>${escapeHTML(x.subject)}</b>
+        <span class="tag ${x.level==='Intenso'?'warn':'high'}">${escapeHTML('Reforço '+x.level)}</span></div>
+      <p class="adaptive-topic">${escapeHTML(x.topic||'Disciplina — assunto não identificado')}</p>
+      <p class="adaptive-rationale">${escapeHTML(x.explanation)} · ${x.accuracy===null?'Rendimento não aferido':pct(x.accuracy)} · ${x.due_reviews} revisão(ões) pendente(s)</p>
+      <p class="adaptive-rationale"><b>Ação:</b> ${escapeHTML(x.action)}</p>
+      <p class="adaptive-rationale"><b>Orientação:</b> ${escapeHTML(x.guidance)}</p>
+      ${x.dominant_batch_cause?`<p class="adaptive-rationale">Causa informada: ${escapeHTML(x.dominant_batch_cause)} (por bateria, não por questão)</p>`:''}
+      <small>${escapeHTML(x.evidence)}</small>
+    </div></article>`).join(''):'<p class="subtitle">Ainda não há evidências suficientes para indicar reforços específicos.</p>';
+  const reinforcementPanel=`<section class="panel" style="margin-bottom:18px">
+    <div class="panel-head"><div><h2>Reforços inteligentes</h2><p>Triagem por assunto, dificuldades observadas e próximas ações</p></div><span class="hint">SEM ALTERAR O PLANO</span></div>
+    <div class="panel-content">${reinforceContent}</div></section>`;
+  return `${header}${summary}${warning}${intro}${reinforcementPanel}<div class="small-grid"><section class="panel">
     <div class="panel-head"><div><h2>Mapa de prioridades</h2><p>Recomendações com motivo e nível de evidência</p></div><span class="hint">TOP ${items.length}</span></div>
     <div class="panel-content">${priority}</div></section>
     <section class="panel"><div class="panel-head"><div><h2>Prévia da próxima semana</h2><p>Nenhuma atividade é alterada até sua confirmação</p></div><span class="hint">${plan.task_count||0} TAREFAS</span></div>${table}</section></div>
