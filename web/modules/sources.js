@@ -7,7 +7,10 @@ export function sourcesView(d,{heading}){
  const mats=src.materials||[], bookmarks=src.tec_bookmarks||[],csv=src.tec_csv_files||[];
  const catalog=src.catalog||{subjects:[],total_lessons:0,pending_subjects:[]};
  const key=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
- const linked=(subject,topic)=>bookmarks.filter(b=>key(b.subject)===key(subject)&&key(b.topic)===key(topic));
+ const linked=(subject,topic)=>[
+  ...bookmarks.map(b=>({title:b.title,url:b.url,subject:b.subject,topic:b.topic})),
+  ...(src.lesson_links||[]).map(b=>({title:b.label,url:b.url,subject:b.subject,topic:b.topic}))
+ ].filter(b=>key(b.subject)===key(subject)&&key(b.topic)===key(topic));
  const lessonTopic=(subject,lesson)=>{const group=(catalog.subjects||[]).find(g=>g.subject===subject);
    const l=group?.lessons?.find(e=>key(e.lesson)===key(lesson));return l?.topic||'';};
 
