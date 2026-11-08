@@ -13,11 +13,11 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from core import ROOT, all_rows, parse_day, norm, map_subject
+from core import ROOT, DB_PATH, all_rows, parse_day, norm, map_subject
 
-PDF_ROOT = ROOT / 'dados' / 'materiais' / 'estrategia'
-QC_ROOT = ROOT / 'dados' / 'importacoes' / 'qconcursos'
-TEC_ROOT = ROOT / 'dados' / 'importacoes' / 'tec'
+PDF_ROOT = DB_PATH.parent / 'materiais' / 'estrategia'
+QC_ROOT = DB_PATH.parent / 'importacoes' / 'qconcursos'
+TEC_ROOT = DB_PATH.parent / 'importacoes' / 'tec'
 MAX_PDF_SIZE = 150 * 1024 * 1024
 MAX_CSV_SIZE = 2 * 1024 * 1024
 MAX_FILES = 500
@@ -31,7 +31,9 @@ def external_root(c):
     row = c.execute('SELECT value FROM settings WHERE key=?',(EXTERNAL_SETTING,)).fetchone()
     candidates=([Path(row[0])] if row and row[0] else []) + [
         ROOT.parent / 'MATERIAL TEÓRICO', ROOT.parent / 'MATERIAL TEORICO',
-        ROOT / 'MATERIAL TEÓRICO']
+        ROOT / 'MATERIAL TEÓRICO',
+        Path.home() / 'Desktop' / 'CONTROLE_MESTRE' / 'MATERIAL TEÓRICO',
+        Path.home() / 'Desktop' / 'CONTROLE_MESTRE' / 'MATERIAL TEORICO']
     # Windows: títulos podem usar grafias/maiúsculas diferentes; verificar apenas
     # irmãos da aplicação, sem buscas amplas no computador ou acesso à nuvem.
     try:
@@ -400,8 +402,10 @@ def import_csv(c, file_name, provider='Qconcursos'):
 
 
 def status(c):
+    from lesson_question_links import list_links
     from lesson_catalog import status as lesson_status
     return {'materials':list_materials(c),
+            'lesson_links':list_links(c),
             'bookmarks':list_bookmarks(c),  # legado Qconcursos preservado
             'tec_bookmarks':list_bookmarks(c,'TEC Concursos'),
             'csv_files':list_csv_files(),  # legado Qconcursos preservado
