@@ -93,7 +93,7 @@ def report(c):
     essay_groups=[{'bank':v['bank'],'count':v['count'],'mean_rate':v['sum_pct']/v['count']}
                   for v in essay_banks.values()]
     essay_groups.sort(key=lambda g:(-g['count'],g['bank']))
-    return {'portuguese':pt,'portuguese_banks':_by_bank(pt),
+    return {'portuguese':pt,'mocks':mock,'essays':essays,'portuguese_banks':_by_bank(pt),
             'mock_banks':_by_bank(mock),'essays_banks':essay_groups,
             'portuguese_rate':sum(x['correct'] for x in pt)/sum(x['total'] for x in pt) if pt else None,
             'definitions':{
