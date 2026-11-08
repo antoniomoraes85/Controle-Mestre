@@ -17,6 +17,7 @@ from anki_bridge import local_status as anki_status, detect as anki_detect, coll
 from study_guide import read as study_read, create as study_create, import_rows as study_import, save_entry as study_save_entry, progress as study_progress
 from bizu_seed import rows as bizu_rows, provenance as bizu_provenance
 from study_time import report as study_time_report, save as study_time_save
+from anki_analytics import collect as anki_review_collect, save as anki_review_save, report as anki_review_report
 from adaptive import diagnose, preview_plan, apply_plan
 from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
@@ -134,6 +135,10 @@ class AppHandler(BaseHTTPRequestHandler):
         if route=='/api/study-guide/preset':
             # Envia apenas metadados factuais de incidências, nunca os PDFs.
             return self._json(200,{'rows':bizu_rows(),'provenance':bizu_provenance()})
+        if route=='/api/anki/analytics':
+            c=connect()
+            try:return self._json(200,anki_review_report(c))
+            finally:c.close()
         if route=='/api/anki/diagnostics':
             import socket
             result={'host':'127.0.0.1','port':8765,'port_open':False,
@@ -277,6 +282,11 @@ class AppHandler(BaseHTTPRequestHandler):
             if route=='/api/study-guide/progress':
                 return self._json(200,study_progress(c,int(args['guide_id']),int(args['entry_id']),
                     args['status'],args['progress']))
+            if route=='/api/anki/analytics/sync':
+                if args.get('confirm') is not True:
+                    raise ValueError('Confirme para ler as respostas do Anki.')
+                result=anki_review_collect(args.get('profile','Principal'))
+                return self._json(200,anki_review_save(c,result))
             if route=='/api/anki/sync':
                 if args.get('confirm') is not True:raise ValueError('Confirmação explícita necessária para sincronizar.')
                 snap=anki_collect(args.get('profile','Principal'))
