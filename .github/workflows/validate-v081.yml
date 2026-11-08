@@ -1,0 +1,27 @@
+name: CONTROLE MESTRE - Validacao da integracao v0.8.1
+on:
+  push:
+    branches:
+      - feat/integra-erros-reforcos-v081
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Testes Python da suite completa
+        run: python -m unittest discover -s tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Sintaxe de todos os modulos ES atualizados
+        run: |
+          node --check web/app.js
+          node --check web/modules/questions.js
+          node --check web/modules/adaptive.js
