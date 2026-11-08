@@ -82,6 +82,11 @@ def detect():
         if 'reforma tributaria' in x and '227' in x:sub='Reforma Tributária — LC 227'
         elif 'reforma tributaria' in x and ('132' in x or '214' in x):sub='Reforma Tributária — EC 132 e LC 214'
         else:sub=map_subject(name)
+        if sub not in SUBJECTS:
+            # Nomes completos como SEFAZ-RS::Matemática Financeira
+            # podem não existir na tabela histórica de apelidos.
+            sub=next((candidate for candidate in
+                      sorted(SUBJECTS,key=len,reverse=True) if norm(candidate) in x),sub)
         if sub not in SUBJECTS:continue
         mapped.append({'deck':name,'deck_id':ident,'subject':sub})
     return {'connected':True,'version':version,'decks':mapped,
