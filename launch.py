@@ -34,7 +34,7 @@ def _existing_controle_mestre(port: int) -> bool:
             return (resp.status == 200 and info.get('ok') is True
                     and info.get('app') == 'CONTROLE MESTRE'
                     and info.get('mode') == 'private-local'
-                    and info.get('version') == '0.8.2')
+                    and info.get('version') == '0.8.3')
     except (OSError, HTTPError, URLError, ValueError, TypeError):
         return False
 
