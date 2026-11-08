@@ -14,6 +14,8 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from anki_bridge import local_status as anki_status, detect as anki_detect, collect_snapshot as anki_collect, save_snapshot as anki_save
+from study_guide import read as study_read, create as study_create, import_rows as study_import, save_entry as study_save_entry, progress as study_progress
+from bizu_seed import rows as bizu_rows, provenance as bizu_provenance
 from adaptive import diagnose, preview_plan, apply_plan
 from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
@@ -120,6 +122,28 @@ class AppHandler(BaseHTTPRequestHandler):
             c=connect()
             try:return self._json(200,sources_status(c))
             finally:c.close()
+        if route=='/api/study-guide':
+            c=connect()
+            try:return self._json(200,study_read(c))
+            finally:c.close()
+        if route=='/api/study-guide/preset':
+            # Envia apenas metadados factuais de incidências, nunca os PDFs.
+            return self._json(200,{'rows':bizu_rows(),'provenance':bizu_provenance()})
+        if route=='/api/anki/diagnostics':
+            import socket
+            result={'host':'127.0.0.1','port':8765,'port_open':False,
+                    'api_connected':False,'api_version':None,'message':''}
+            try:
+                with socket.create_connection(('127.0.0.1',8765),timeout=3):
+                    result['port_open']=True
+                info=anki_detect()
+                result.update({'api_connected':True,'api_version':info['version'],
+                               'selected_decks':info['selected_decks'],
+                               'all_decks':info['all_decks'],
+                               'message':'AnkiConnect respondeu à plataforma local. API 5 é compatível com complemento AnkiConnect v6.'})
+            except (OSError,ValueError) as exc:
+                result['message']=str(exc)[:250]
+            return self._json(200,result)
         if route=='/api/anki/check':
             try:return self._json(200,anki_detect())
             except ValueError as exc:return self._json(503,{'error':str(exc)})
@@ -143,7 +167,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.2','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.3','mode':'private-local','multiuser':False})
         # --- Rastreamento de erros ---
         if route=='/api/questions/drafts':
             c=connect()
@@ -236,6 +260,16 @@ class AppHandler(BaseHTTPRequestHandler):
         route=urlsplit(self.path).path
         c=connect()
         try:
+            if route=='/api/study-guide/create':
+                return self._json(201,study_create(c,args.get('title','Preparação SEFAZ-RS'),args.get('weekly_hours',25)))
+            if route=='/api/study-guide/preset':
+                return self._json(200,study_import(c,int(args['guide_id']),bizu_rows(),
+                    confirm=args.get('confirm') is True))
+            if route=='/api/study-guide/entry':
+                return self._json(201,study_save_entry(c,int(args['guide_id']),args))
+            if route=='/api/study-guide/progress':
+                return self._json(200,study_progress(c,int(args['guide_id']),int(args['entry_id']),
+                    args['status'],args['progress']))
             if route=='/api/anki/sync':
                 if args.get('confirm') is not True:raise ValueError('Confirmação explícita necessária para sincronizar.')
                 snap=anki_collect(args.get('profile','Principal'))
