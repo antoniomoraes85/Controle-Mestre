@@ -15,6 +15,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from anki_bridge import local_status as anki_status, detect as anki_detect, collect_snapshot as anki_collect, save_snapshot as anki_save
 from adaptive import diagnose, preview_plan, apply_plan
+from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
 from sources import status as sources_status, scan_pdfs, assign_material, register_bookmark, register_tec_bookmark, preview_csv, import_csv, set_external_root, path_for_material
 from fiscal_path import status as fiscal_status, activate as fiscal_activate, preview_week as fiscal_preview_week, apply_week as fiscal_apply_week, complete_task as fiscal_complete_task
@@ -71,6 +72,7 @@ def overview(c, today=None):
         sources=sources_status(c), fiscal=fiscal_status(c,today), anki_live=anki_status(c),
         metrics=metrics, ranking=ranked, plans=plans, done=done, assessments=assessment_summary(c),
         adaptive=diagnose(c, today), adaptive_preview=preview_plan(c,start,today),
+        reinforcements=recommend_reinforcements(c,today),
         weeks=weeks, sessions=sessions, question_history=qq, reviews=revisions,
         anki=anki, topic_progress=progress,
         cycles=all_rows(c, 'SELECT subject,cycle,ROUND(SUM(minutes),0) AS minutes FROM sessions WHERE cycle IS NOT NULL GROUP BY subject,cycle ORDER BY cycle,subject'),
