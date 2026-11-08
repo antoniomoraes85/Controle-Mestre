@@ -24,7 +24,7 @@ from core import (ROOT, connect, all_rows, metric_data, subject_metrics,
 from error_tracking import (
     register_batch, register_question_item, get_batch,
     get_error_summary, get_caderno_erros, update_item_correction,
-    feed_performance, ERROR_CAUSES, ITEM_RESULTS, ITEM_DIFFICULTIES,
+    feed_performance, finalize_batch, ERROR_CAUSES, ITEM_RESULTS, ITEM_DIFFICULTIES,
     CORRECTION_STATUSES, GABARITO_TIMINGS,
 )
 
@@ -320,13 +320,15 @@ class AppHandler(BaseHTTPRequestHandler):
                     mode=str(args.get('mode','batch')),
                     cause_counts=args.get('cause_counts') or {},
                     notes=str(args.get('notes',''))[:500],
+                    request_id=str(args.get('request_id',''))[:100] or None,
                 )
-                perf=feed_performance(c,bid)
-                add_questions(c,perf['day'],perf['subject'],perf['topic'],
-                    perf['total'],perf['correct'],
-                    str(args.get('banca',''))[:80],str(args.get('platform',''))[:80],
-                    '','Registrado via error_tracking')
-                return self._json(201,{'ok':True,'batch_id':bid,'performance':perf})
+                if str(args.get('mode','batch')) == 'batch':
+                    perf=finalize_batch(c,bid)
+                    return self._json(201,{'ok':True,'batch_id':bid,'status':'finalized','performance':perf})
+                return self._json(201,{'ok':True,'batch_id':bid,'status':'draft'})
+            if route=='/api/questions/batch/finalize':
+                perf=finalize_batch(c,int(args['batch_id']))
+                return self._json(200,{'ok':True,'status':'finalized','performance':perf})
             if route=='/api/questions/item':
                 bid=int(args['batch_id'])
                 iid=register_question_item(c,
