@@ -68,3 +68,103 @@ main{padding:33px 40px 54px;max-width:1650px;margin:0 auto;min-height:calc(100vh
 a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .panel-head{gap:10px;flex-wrap:wrap}
 .panel .act-table small{font-size:10px;color:#aeb7bd;overflow-wrap:anywhere}
+
+/* ============================================================
+   MÓDULO DE QUESTÕES — Registro Detalhado de Erros (FASE 1)
+   ============================================================ */
+
+/* Painel raiz */
+.questions-panel{max-width:860px}
+.panel-title{font-size:18px;font-weight:800;margin-bottom:18px}
+
+/* Toggle Modo */
+.mode-toggle{display:flex;gap:0;border:1px solid var(--stroke-gold);border-radius:10px;overflow:hidden;width:fit-content;margin-bottom:22px}
+.mode-btn{background:#1e2229;color:#b0b6c2;border:0;padding:11px 24px;font-size:12px;font-weight:800;letter-spacing:.05em;transition:background .15s,color .15s;border-right:1px solid var(--stroke-gold)}
+.mode-btn:last-child{border-right:0}
+.mode-btn:hover{background:#2a2f38;color:#fff}
+.mode-btn.mode-active{background:rgba(255,214,0,.13);color:var(--yellow)}
+
+/* Formulário genérico */
+.register-form{display:flex;flex-direction:column;gap:14px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full-width{grid-column:1/-1}
+.form-group label{font-size:11px;color:#b9bec7;font-weight:800}
+.form-group input,.form-group select,.form-group textarea{background:#22262f;color:#f1f3f5;border:1px solid #3c424f;border-radius:8px;padding:11px 12px;width:100%;font-size:12px}
+.form-group textarea{resize:vertical;min-height:70px}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--yellow);outline:none}
+.form-check label{display:flex;align-items:center;gap:8px;font-size:12px;color:#c8d0d8;cursor:pointer}
+.form-check input[type=checkbox]{accent-color:var(--yellow);width:15px;height:15px}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:4px}
+.form-actions-end{justify-content:flex-start}
+
+/* Botões de ação */
+.btn-primary{background:var(--gold-gradient);border:0;border-radius:9px;color:#101114;padding:11px 20px;font-size:12px;font-weight:800;transition:all .15s}
+.btn-primary:hover{background:#ffea00;box-shadow:var(--gold-glow)}
+.btn-secondary{background:#2a2f38;border:1px solid #3e444f;border-radius:9px;color:#d0d6df;padding:11px 18px;font-size:12px;font-weight:800;transition:all .15s}
+.btn-secondary:hover{background:#333a46;color:#fff}
+.btn-link{background:none;border:0;color:var(--yellow);font-size:11px;font-weight:700;padding:0;cursor:pointer;text-decoration:underline}
+
+/* Fieldset de causas */
+.causes-fieldset{border:1px solid #343a46;border-radius:11px;padding:16px;margin-top:4px}
+.causes-fieldset legend{font-size:12px;color:#c8cfda;font-weight:800;padding:0 7px}
+.note-inline{font-size:11px;color:#8e95a2;font-weight:400}
+.causes-note{font-size:11px;color:#ffe58a;background:rgba(255,214,0,.08);border:1px solid rgba(255,214,0,.2);border-radius:7px;padding:9px 11px;margin-bottom:12px}
+.causes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.cause-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#1e2229;border-radius:8px;padding:9px 12px}
+.cause-label{font-size:11px;color:#c5cad3;flex:1}
+.cause-qty{width:58px;text-align:center;background:#2a2e38;border:1px solid #3c424f;border-radius:6px;padding:5px 7px;color:#f1f3f5;font-size:12px}
+
+/* Resultado rápido (Modo B) */
+.result-quick-pick{background:#1e2229;border-radius:11px;padding:14px;border:1px solid #343a46}
+.result-label{font-size:11px;color:#b9bec7;font-weight:800;display:block;margin-bottom:10px}
+.result-buttons{display:flex;gap:9px;flex-wrap:wrap}
+.result-btn{border:1px solid #3c424f;background:#282d37;border-radius:9px;padding:11px 20px;font-size:12px;font-weight:800;color:#c8d0d8;transition:all .15s;cursor:pointer}
+.result-btn:hover{border-color:#ffd600;color:#fff}
+.result-btn.result-selected.result-correct{background:rgba(84,170,54,.18);border-color:#54aa36;color:#a4f08b}
+.result-btn.result-selected.result-incorrect{background:rgba(250,116,116,.16);border-color:#fa7474;color:#ffb3b3}
+.result-btn.result-selected.result-unanswered{background:rgba(142,149,162,.14);border-color:#8e95a2;color:#cbd5e1}
+
+/* Causas secundárias */
+.secondary-causes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:7px}
+.checkbox-label{display:flex;align-items:center;gap:7px;font-size:11px;color:#b9bec7;cursor:pointer;padding:5px 0}
+.checkbox-label input[type=checkbox]{accent-color:var(--yellow)}
+
+/* Bloco oculto */
+.hidden{display:none!important}
+
+/* Bateria ativa */
+.active-batch-note{background:rgba(84,170,54,.12);border:1px solid rgba(84,170,54,.3);border-radius:9px;padding:11px 15px;font-size:12px;color:#a4f08b;display:flex;align-items:center;gap:14px;margin-bottom:15px}
+.batch-header-collapsible{background:#1e2229;border:1px solid #343a46;border-radius:11px;padding:15px;margin-bottom:16px}
+.batch-header-collapsible summary{font-size:12px;font-weight:800;color:#c8cfda;cursor:pointer;margin-bottom:14px}
+
+/* Lista de itens lançados */
+.items-list{display:flex;flex-direction:column;gap:7px;margin:14px 0}
+.item-entry{display:flex;align-items:center;gap:10px;background:#1e2229;border-radius:9px;padding:10px 14px;font-size:12px;border-left:3px solid transparent}
+.item-entry.item-correct{border-left-color:#54aa36}
+.item-entry.item-incorrect{border-left-color:#fa7474}
+.item-entry.item-unanswered{border-left-color:#8e95a2}
+.item-num{color:#8e95a2;font-size:11px;min-width:30px}
+.item-icon{font-size:14px}
+.item-info{flex:1;color:#d8dce4}
+.item-cause{font-size:10px;color:#ffd094;background:#3a2e22;border-radius:6px;padding:3px 7px}
+
+/* Caderno de erros */
+.caderno-table{width:100%;border-collapse:collapse;font-size:12px}
+.caderno-table th{background:#23272f;color:#949aa6;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:11px 10px;border-bottom:1px solid #2e333c;text-align:left}
+.caderno-table td{padding:12px 10px;border-bottom:1px solid #282c35;vertical-align:middle}
+.caderno-table tr:last-child td{border-bottom:none}
+.caderno-table .item-row.item-incorrect td{color:#ffdede}
+.correction-select{background:#22262f;border:1px solid #3c424f;border-radius:6px;color:#d8dce4;padding:4px 8px;font-size:11px}
+
+/* Feedback */
+.feedback-area{min-height:30px;padding:10px 14px;border-radius:9px;font-size:12px;font-weight:600;transition:all .2s;display:flex;align-items:center}
+.feedback-info{background:#1e2229;color:#b0b6c2;border:1px solid #343a46}
+.feedback-success{background:rgba(84,170,54,.14);color:#a4f08b;border:1px solid rgba(84,170,54,.3)}
+.feedback-error{background:rgba(250,116,116,.12);color:#ffa8a8;border:1px solid rgba(250,116,116,.28)}
+
+.empty-state,.error-state{padding:28px;text-align:center;color:#9fa5ae;font-size:12px}
+.error-state{color:#ffa8a8}
+.section-hint{font-size:11px;color:#8e95a2;margin:0 0 12px}
+
+@media(max-width:620px){.form-grid{grid-template-columns:1fr}.causes-grid{grid-template-columns:1fr}.result-buttons{flex-direction:column}.mode-toggle{width:100%}.mode-btn{flex:1;text-align:center}}
