@@ -7,7 +7,6 @@ from __future__ import annotations
 
 # (disciplina, aula, ano, página PDF, [(assunto sintético, incidência), ...])
 SETS=[
- ('Auditoria','03',2026,3,[('Procedimentos e evidências de auditoria',32),('Materialidade, riscos e fraudes',16),('Auditoria interna',12),('Amostragem em auditoria',11)]),
  ('Português','05',2025,3,[('Interpretação de textos',27.39),('Classes de palavras',15.54),('Reescrita de frases',12.86),('Semântica',10.23),('Coesão e coerência',8.41),('Sintaxe',8.41)]),
  ('RLM','06',2025,3,[('Equivalências lógicas',24.59),('Estruturas lógicas',23.77),('Lógica de argumentação',13.93),('Problemas de lógica',8.20),('Raciocínio sequencial',8.20),('Diagramas lógicos',7.38)]),
  ('Direito Empresarial','07',2025,3,[('Registro, escrituração, preposto e nome empresarial',21.93),('Sociedade simples e limitada',14.04),('Sociedade anônima',12.28),('Tipos societários',11.40),('Falência e recuperação',11.40)]),
