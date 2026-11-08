@@ -338,9 +338,9 @@ def get_error_summary(
     """
     _ensure_schema(c)
     args_b: list = []
-    where_b = 'WHERE 1=1'
+    where_b = "WHERE status!='draft'"
     args_i: list = []
-    where_i = 'WHERE result = \'Incorreta\''
+    where_i = "WHERE result='Incorreta' AND batch_id IN (SELECT id FROM question_batches WHERE status!='draft')"
 
     if subject:
         where_b += ' AND subject=?'
