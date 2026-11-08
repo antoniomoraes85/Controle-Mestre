@@ -711,7 +711,7 @@ export async function renderQuestionHistory(container) {
     const data = await api('questions/history');
     const rows = data.items || [];
     if (!rows.length) {
-      container.innerHTML = '<p class="subtitle">Sem baterias finalizadas ainda. Cada novo registro concluído aparecerá aqui e continuará salvo após fechar o programa.</p>';
+      container.innerHTML = '<p class="subtitle">Nenhum registro de questões ainda. As próximas baterias concluídas aparecerão aqui e permanecerão no seu banco local.</p>';
       return;
     }
     container.innerHTML = `<div class="table-wrap"><table class="act-table">
@@ -720,9 +720,9 @@ export async function renderQuestionHistory(container) {
       <td>${_esc(row.day)}</td><td>${_esc(row.subject)}</td><td>${_esc(row.topic||'—')}</td>
       <td>${_esc(row.platform||'—')}</td><td>${Number(row.total)}</td><td>${Number(row.correct)}</td>
       <td>${row.total ? (100*Number(row.correct)/Number(row.total)).toFixed(1).replace('.',',')+'%' : '—'}</td>
-      <td>${_esc(row.mode==='individual'?'Por questão':'Por bateria')}</td>
+      <td>${_esc(row.mode==='individual'?'Por questão':row.mode==='batch'?'Por bateria':'Registro anterior')}</td>
     </tr>`).join('')}</tbody></table></div>
-    <p class="period-caption">Até 200 baterias recentes. Os dados completos continuam no banco local, inclusive após fechar o navegador.</p>`;
+    <p class="period-caption">Até 200 registros recentes, incluindo lançamentos anteriores e baterias detalhadas. O histórico completo permanece salvo no banco local.</p>`;
   } catch(error) {
     container.textContent = 'Histórico não disponível: '+error.message;
   }
