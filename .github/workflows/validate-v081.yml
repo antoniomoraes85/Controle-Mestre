@@ -10,6 +10,7 @@ on:
     branches:
       - feat/cronogramas-identidade-v07
       - chore/organizacao-segura-historico-v082
+      - feat/guia-edital-anki-diagnostico-v083
 jobs:
   testes:
     runs-on: ubuntu-latest
