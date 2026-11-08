@@ -15,6 +15,7 @@ function startIntro() {
   const finish = () => {
     const focused = intro.contains(document.activeElement);
     intro.remove();
+    window.dispatchEvent(new Event('cm:intro:finished'));
     clearTimeout(timer);
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('focusin', onFocus);

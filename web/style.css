@@ -93,3 +93,65 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 @keyframes intro-exit{0%,88%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden;pointer-events:none}}
 @media(max-width:480px){.intro-art{padding:12px}.intro-quote{letter-spacing:.05em}.intro-brand img{width:95%}}
 @media(prefers-reduced-motion:reduce){.chess-intro{display:none}.chess-intro *{animation:none!important}}
+
+/* CM HERO v0.7.2 — metallic title and animated chess duel */
+/* Metallic letterforms: silver for CONTROLE, warm lustrous gold for MESTRE. */
+.hero-title{display:flex;flex-wrap:wrap;align-items:center;gap:.13em .28em;font-size:clamp(29px,3vw,43px);line-height:1.18;margin:3px 0 18px;isolation:isolate}
+.hero-title .metal-word{display:inline-block;position:relative;letter-spacing:-.036em;font-weight:900;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  -webkit-text-stroke:.3px rgba(255,255,255,.22);
+  background-size:180% 100%;filter:drop-shadow(0 2px 1px rgba(0,0,0,.95)) drop-shadow(0 5px 8px rgba(0,0,0,.65));
+  animation:cm-metal-glimmer 9s ease-in-out infinite alternate}
+.hero-title .metal-silver{color:#EDF3F9;background-image:linear-gradient(118deg,
+  #667484 0%,#EDF4FB 10%,#FAFCFF 17%,#9EABB9 27%,#465568 36%,#FFFFFF 43%,
+  #BBC5D0 51%,#5E6D80 60%,#F6FBFF 73%,#A4B0BF 85%,#F5F8FC 100%)}
+.hero-title .metal-gold{color:#FFD600;background-image:linear-gradient(118deg,
+  #8B520A 0%,#FFC82C 12%,#FFF5B0 20%,#A86607 31%,#FFEB80 43%,
+  #FFF7CD 48%,#CD8A0A 59%,#FFC21B 72%,#FFECA0 86%,#A96A0B 100%);
+  -webkit-text-stroke:.35px rgba(255,224,114,.4)}
+@keyframes cm-metal-glimmer{0%,15%{background-position:15% center}85%,100%{background-position:85% center}}
+/* Official quote stays foregrounded throughout and after the opening intro. */
+.hero-motto{max-width:610px;margin:0 0 24px;font-size:clamp(14px,1.55vw,19px);
+  line-height:1.35;font-weight:850;letter-spacing:.018em;text-shadow:0 2px 9px rgba(0,0,0,.8)}
+.hero-motto span,.hero-motto strong{display:block}
+.hero-motto span{color:#F5F7FB}
+.hero-motto strong{font-weight:900;color:#FFD600;text-shadow:0 0 17px rgba(255,214,0,.28),0 2px 7px #090A0C}
+.layer-content{max-width:min(740px,66%);z-index:10}
+.layer-chess-scene picture{position:absolute;inset:0;display:block;opacity:.37;filter:brightness(.6) saturate(.8) blur(1.3px)}
+.layer-chess-scene .hero-chess-overlay{z-index:1}
+.hero-duel-stage{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;opacity:.98}
+.hero-duel-svg{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 8px 21px rgba(0,0,0,.63))}
+.hero-duel-pawn{transform:translate3d(-38px,0,0)}
+.hero-duel-king{transform-box:view-box;transform-origin:530px 320px;transform:rotate(0deg)}
+.hero-duel-impact{opacity:0;transform-origin:490px 272px;transform-box:view-box}
+.hero-duel-stage.is-playing .hero-duel-pawn{animation:cm-hero-pawn 3.3s cubic-bezier(.2,.6,.25,1) both}
+.hero-duel-stage.is-playing .hero-duel-king{animation:cm-hero-king 3.3s ease-in-out both}
+.hero-duel-stage.is-playing .hero-duel-impact{animation:cm-hero-hit 3.3s ease-out both}
+/* Impact starts at 43% of the hero animation; king stays fallen afterwards. */
+@keyframes cm-hero-pawn{0%,13%{transform:translateX(-38px)}42%{transform:translateX(113px) rotate(-4deg)}
+  48%{transform:translateX(137px) rotate(6deg)}61%,100%{transform:translateX(105px) rotate(0deg)}}
+@keyframes cm-hero-king{0%,43%{transform:rotate(0deg)}50%{transform:rotate(18deg)}
+  66%{transform:rotate(103deg)}73%{transform:rotate(86deg)}79%,100%{transform:rotate(93deg)}}
+@keyframes cm-hero-hit{0%,42%{opacity:0;transform:scale(.25)}48%{opacity:1;transform:scale(1)}
+  61%{opacity:.35;transform:scale(1.5)}77%,100%{opacity:0;transform:scale(1.8)}}
+@media (min-width:781px) and (max-width:1160px){
+  .layer-content{max-width:67%;padding:30px 28px}
+  .hero-motto{font-size:14px}
+  .hero-title{font-size:31px}
+  .layer-chess-scene{width:64%}
+}
+@media (max-width:780px){
+  .hero-parallax-banner{min-height:315px;padding:12px 0}
+  .layer-content{max-width:100%;padding:21px 19px}
+  .hero-title{font-size:clamp(26px,6.2vw,36px)}
+  .hero-motto{font-size:clamp(13px,3.3vw,17px);max-width:500px}
+  .layer-chess-scene{display:flex;width:100%;opacity:.25}
+  .hero-duel-stage{transform:translateX(18%) scale(1.05);transform-origin:right bottom}
+  .hero-chess-overlay{background:linear-gradient(90deg,#101114 0%,rgba(16,17,20,.75) 70%,rgba(16,17,20,.4) 100%)}
+}
+@media (prefers-reduced-motion: reduce){
+  .hero-title .metal-word{animation:none!important;background-position:48% center!important}
+  .hero-duel-stage .hero-duel-pawn{animation:none!important;transform:translateX(105px)!important}
+  .hero-duel-stage .hero-duel-king{animation:none!important;transform:rotate(93deg)!important}
+  .hero-duel-stage .hero-duel-impact{animation:none!important;opacity:0!important}
+}
