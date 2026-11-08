@@ -20,6 +20,7 @@ from study_time import report as study_time_report, save as study_time_save
 from anki_analytics import collect as anki_review_collect, save as anki_review_save, report as anki_review_report
 from assessment_insights import report as assess_insights_report, record as portuguese_record, remove as portuguese_remove
 from question_bank import report as question_bank_report
+from lesson_question_links import save as lesson_link_save
 from adaptive import diagnose, preview_plan, apply_plan
 from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
@@ -320,6 +321,8 @@ class AppHandler(BaseHTTPRequestHandler):
             if route=='/api/sources/material':
                 return self._json(200,assign_material(c,args['id'], args.get('subject',''),
                     args.get('topic',''),args.get('course',''),args.get('lesson',''),args.get('material_type')))
+            if route=='/api/materials/lesson-link':
+                return self._json(200,lesson_link_save(c,args))
             if route=='/api/tec/bookmark':
                 return self._json(201,register_tec_bookmark(c,args['title'],args['url'],
                     args.get('subject',''),args.get('topic','')))
