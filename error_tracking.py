@@ -141,6 +141,7 @@ def register_batch(
     cause_counts: dict[str, int] | None = None,
     notes: str = '',
     source: str = 'web',
+    request_id: str | None = None,
 ) -> int:
     """Registra uma bateria de questões e retorna o id inserido.
 
@@ -154,6 +155,11 @@ def register_batch(
         automaticamente todos os erros à mesma causa sem comunicar a simplificação.
     """
     _ensure_schema(c)
+    request_id = str(request_id or '').strip() or None
+    if request_id:
+        previous = c.execute('SELECT id FROM question_batches WHERE request_id=?', (request_id,)).fetchone()
+        if previous:
+            return int(previous[0])
     day_str = parse_day(day)
     if not day_str:
         raise ValueError('Data inválida.')
@@ -176,6 +182,9 @@ def register_batch(
     if mode not in ('batch', 'individual'):
         raise ValueError('mode deve ser "batch" ou "individual".')
 
+    import math
+    if not math.isfinite(float(time_used_min)) or float(time_used_min) < 0:
+        raise ValueError('Tempo deve ser finito e não negativo.')
     counts_clean = _validate_cause_counts(cause_counts or {})
     # Verifica consistência: a soma das causas não pode superar os erros registráveis.
     errors_count = total - correct - unanswered
@@ -189,15 +198,15 @@ def register_batch(
         '''INSERT INTO question_batches
            (day, subject, topic, platform, banca, total, correct, unanswered,
             time_used_min, had_prior_review, gabarito_timing, mode,
-            cause_counts, notes, source, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+            cause_counts, notes, source, created_at, status, request_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
         (
             day_str, subject, topic.strip(), platform.strip(), banca.strip(),
             total, correct, unanswered,
             float(time_used_min), int(had_prior_review),
             gabarito_timing, mode,
             json.dumps(counts_clean, ensure_ascii=False),
-            notes.strip(), source, _now_iso(),
+            notes.strip(), source, _now_iso(), 'draft', request_id,
         ),
     )
     c.commit()
@@ -252,9 +261,27 @@ def register_question_item(
     for sc in sec:
         _validate_cause(sc, f'secondary_cause "{sc}"')
 
-    # Verificar que o batch existe.
-    if not c.execute('SELECT 1 FROM question_batches WHERE id=?', (batch_id,)).fetchone():
+    # O item precisa pertencer à bateria ainda aberta e respeitar o seu limite.
+    batch = c.execute('SELECT subject,topic,total,mode,status FROM question_batches WHERE id=?',
+                      (batch_id,)).fetchone()
+    if not batch:
         raise ValueError(f'Bateria {batch_id} não encontrada.')
+    if batch['mode'] != 'individual' or batch['status'] != 'draft':
+        raise ValueError('Somente baterias individuais em rascunho aceitam itens.')
+    if subject.strip() != batch['subject']:
+        raise ValueError('Disciplina da questão não corresponde à bateria.')
+    if batch['topic'] and topic.strip() != batch['topic']:
+        raise ValueError('Assunto da questão não corresponde à bateria.')
+    count = c.execute('SELECT COUNT(*) FROM question_items WHERE batch_id=?', (batch_id,)).fetchone()[0]
+    if count >= batch['total']:
+        raise ValueError('Quantidade de questões excede o total da bateria.')
+    if int(resolution_time_s) < 0:
+        raise ValueError('Tempo da questão não pode ser negativo.')
+    if question_ref.strip() and c.execute(
+        'SELECT 1 FROM question_items WHERE batch_id=? AND question_ref=?',
+        (batch_id, question_ref.strip())
+    ).fetchone():
+        raise ValueError('Identificador de questão repetido na bateria.')
 
     cur = c.execute(
         '''INSERT INTO question_items
@@ -515,3 +542,60 @@ def feed_performance(c: Any, batch_id: int) -> dict:
             1 for it in batch['items'] if it.get('needs_reinforcement')
         ),
     }
+
+
+def finalize_batch(c: Any, batch_id: int) -> dict:
+    """Finaliza uma bateria e alimenta a tabela legada exatamente uma vez.
+
+    O INSERT legado e o estado final são transacionados juntos. Em caso de
+    retry, o registro existente é devolvido; rascunhos jamais entram no
+    desempenho. Registros anteriores à migração ('legacy') não são recontados.
+    """
+    _ensure_schema(c)
+    batch = c.execute('SELECT * FROM question_batches WHERE id=?', (batch_id,)).fetchone()
+    if not batch:
+        raise ValueError('Bateria não encontrada.')
+    if batch['status'] == 'legacy':
+        raise ValueError('Bateria histórica: não pode ser finalizada novamente.')
+    if batch['status'] == 'finalized':
+        return feed_performance(c, batch_id)
+    if batch['status'] != 'draft':
+        raise ValueError('Estado de bateria desconhecido.')
+    if batch['mode'] == 'individual':
+        counts = {
+            r['result']: r['n'] for r in c.execute(
+                'SELECT result, COUNT(*) AS n FROM question_items WHERE batch_id=? GROUP BY result',
+                (batch_id,)
+            )
+        }
+        if sum(counts.values()) != batch['total']:
+            raise ValueError('Registre todas as questões antes de finalizar a bateria.')
+        if counts.get('Correta',0) != batch['correct'] or counts.get('Não resolvida',0) != batch['unanswered']:
+            raise ValueError('Acertos e não resolvidas devem coincidir com o cabeçalho.')
+        expected_err = batch['total'] - batch['correct'] - batch['unanswered']
+        if counts.get('Incorreta',0) != expected_err:
+            raise ValueError('Quantidade de erros não coincide com o cabeçalho.')
+    fingerprint = f'cm_error_tracking_batch:{batch_id}'
+    try:
+        c.execute('BEGIN IMMEDIATE')
+        c.execute(
+            '''INSERT OR IGNORE INTO questions
+               (day,subject,topic,bank,platform,total,correct,error_type,notes,source,fingerprint)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?)''',
+            (batch['day'], batch['subject'], batch['topic'], batch['banca'],
+             batch['platform'], batch['total'], batch['correct'], '',
+             'Bateria consolidada via registro detalhado', 'error_tracking',
+             fingerprint)
+        )
+        legacy = c.execute('SELECT id FROM questions WHERE fingerprint=?', (fingerprint,)).fetchone()
+        if not legacy:
+            raise RuntimeError('Falha ao consolidar o registro de questões.')
+        c.execute(
+            "UPDATE question_batches SET status='finalized', legacy_question_id=? WHERE id=? AND status='draft'",
+            (legacy[0],batch_id)
+        )
+        c.commit()
+    except Exception:
+        c.rollback()
+        raise
+    return feed_performance(c, batch_id)
