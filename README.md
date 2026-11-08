@@ -6,7 +6,7 @@ Plataforma de planejamento e controle inteligente de estudos.
 
 O projeto retoma a plataforma anterior apresentada pelo canal **Atrator Concursos** em 18/09/2023: [PLATAFORMA CONTROLE MESTRE](https://youtu.be/NAwtZ3KIxao). A descrição pública apresenta planejamento semanal, adaptação à rotina, metas diárias, estudos guiados, revisões, simulados, redações, desempenho por tópico e apostilas de apoio. O vídeo foi identificado por seus metadados; não houve auditoria visual de todas as telas.
 
-## Versão atual: v0.6.1 (catálogo privado por aula e pasta externa compatível; homologação Windows pendente)
+## Versão atual: v0.6.2 (catálogo visível e TEC Concursos Avançado; homologação Windows pendente)
 
 - **Painel web local + Python + SQLite**: execução local e monousuário; Streamlit permanece como interface legada.
 - Metas semanais, cronômetro, ciclos de 1 a 10, questões, erros e revisões.
@@ -197,3 +197,13 @@ A aplicação reconhece a organização real do titular: `Controle-Mestre-main/C
 - Os arquivos existentes `ANKI/*.bas`, `ANKI/*.csv`, `ANKI/*.xlsm` e planilhas permanecem intactos. A integração AnkiConnect da v0.6.0 continua apenas de leitura.
 
 **Pendências:** receber a lista de Direito Civil; testar localmente no Windows; vincular os PDFs reais (não enviados); concluir auditoria das macros/CSV Anki e correspondência entre aulas, assuntos e edital vigente.
+
+## v0.6.2 — Catálogo de aulas e TEC Concursos
+
+- [Guia v0.6.2](GUIA_CONTROLE_MESTRE_V062.md)
+- **Correção de interface:** a seção **Materiais e TEC Concursos** agora mostra as **125 aulas descritas no catálogo privado**, inclusive quando nenhum PDF foi localizado; aulas cadastradas e PDFs físicos têm contagens distintas.
+- **Pasta de PDFs:** informa o caminho esperado de `MATERIAL TEÓRICO` e permite configurar manualmente a raiz existente, sem copiar ou mover PDFs ou material do Anki.
+- **TEC Concursos Avançado:** atalhos para cadernos, cadastro de resultados por questões e importação de CSV preparado pelo usuário em `dados/importacoes/tec/`, com prévia, validação HTTPS e deduplicação. **Sem login, API, scraping ou sincronização automática de conta TEC.**
+- Registros Qconcursos preexistentes continuam preservados no banco SQLite, mas a interface principal agora usa TEC. Aulas de Direito Civil aguardam sumário; não são inventadas.
+- Validação: **75 testes Python passaram**, além de sintaxe JS e smoke-test de HTML do catálogo. Homologação Windows ainda pendente.
+- O GitHub público nunca contém PDFs, banco pessoal, CSVs de resultados, credenciais nem o catálogo detalhado do proprietário.
