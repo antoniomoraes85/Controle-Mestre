@@ -199,7 +199,7 @@ def register_batch(
            (day, subject, topic, platform, banca, total, correct, unanswered,
             time_used_min, had_prior_review, gabarito_timing, mode,
             cause_counts, notes, source, created_at, status, request_id)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING''',
         (
             day_str, subject, topic.strip(), platform.strip(), banca.strip(),
             total, correct, unanswered,
@@ -210,6 +210,12 @@ def register_batch(
         ),
     )
     c.commit()
+    if cur.rowcount == 0 and request_id:
+        existing = c.execute('SELECT id FROM question_batches WHERE request_id=?',(request_id,)).fetchone()
+        if existing:
+            return int(existing[0])
+    if cur.rowcount != 1:
+        raise ValueError('Não foi possível registrar a bateria.')
     return cur.lastrowid  # type: ignore[return-value]
 
 
