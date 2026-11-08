@@ -8,9 +8,15 @@ from __future__ import annotations
 import csv
 from collections import Counter, defaultdict
 from pathlib import Path
-from core import ROOT, all_rows, norm
+from core import ROOT, DB_PATH, all_rows, norm
 
-CATALOG_FILE = ROOT / 'dados' / 'catalogo' / 'aulas_primeiro_ciclo.csv'
+# O banco e o catálogo pertencem ao mesmo diretório persistente; updates do
+# código em AppData/ControleMestre/app não devem esconder listas pessoais.
+CATALOG_FILE = DB_PATH.parent / 'catalogo' / 'aulas_primeiro_ciclo.csv'
+LEGACY_CATALOG_FILE = ROOT / 'dados' / 'catalogo' / 'aulas_primeiro_ciclo.csv'
+
+def catalog_path():
+    return CATALOG_FILE if CATALOG_FILE.is_file() else LEGACY_CATALOG_FILE
 EXPECTED_SUBJECTS = (
  'Contabilidade Geral', 'Contabilidade de Custos',
  'Análise das Demonstrações Contábeis', 'Direito Tributário',
@@ -20,9 +26,10 @@ EXPECTED_SUBJECTS = (
 
 
 def lessons():
-    if not CATALOG_FILE.is_file():
+    path=catalog_path()
+    if not path.is_file():
         return []  # instalação GitHub sem dados privados; nenhuma aula fictícia
-    with CATALOG_FILE.open(encoding='utf-8-sig', newline='') as f:
+    with path.open(encoding='utf-8-sig', newline='') as f:
         data = list(csv.DictReader(f, delimiter=';'))
     seen=set()
     for row in data:
