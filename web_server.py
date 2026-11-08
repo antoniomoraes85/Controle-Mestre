@@ -16,6 +16,7 @@ from urllib.parse import parse_qs, urlsplit
 from anki_bridge import local_status as anki_status, detect as anki_detect, collect_snapshot as anki_collect, save_snapshot as anki_save
 from study_guide import read as study_read, create as study_create, import_rows as study_import, save_entry as study_save_entry, progress as study_progress
 from bizu_seed import rows as bizu_rows, provenance as bizu_provenance
+from study_time import report as study_time_report, save as study_time_save
 from adaptive import diagnose, preview_plan, apply_plan
 from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
@@ -121,6 +122,10 @@ class AppHandler(BaseHTTPRequestHandler):
         if route=='/api/sources':
             c=connect()
             try:return self._json(200,sources_status(c))
+            finally:c.close()
+        if route=='/api/study-time':
+            c=connect()
+            try:return self._json(200,study_time_report(c))
             finally:c.close()
         if route=='/api/study-guide':
             c=connect()
@@ -260,6 +265,8 @@ class AppHandler(BaseHTTPRequestHandler):
         route=urlsplit(self.path).path
         c=connect()
         try:
+            if route=='/api/study-time/save':
+                return self._json(200,study_time_save(c,args))
             if route=='/api/study-guide/create':
                 return self._json(201,study_create(c,args.get('title','Preparação SEFAZ-RS'),args.get('weekly_hours',25)))
             if route=='/api/study-guide/preset':
