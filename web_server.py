@@ -143,7 +143,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.1','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.2','mode':'private-local','multiuser':False})
         # --- Rastreamento de erros ---
         if route=='/api/questions/drafts':
             c=connect()
@@ -157,10 +157,17 @@ class AppHandler(BaseHTTPRequestHandler):
         if route=='/api/questions/history':
             c=connect()
             try:
-                rows=all_rows(c, """SELECT id,day,subject,topic,platform,banca,total,correct,
-                    unanswered,mode,status,legacy_question_id
-                    FROM question_batches WHERE status='finalized'
-                    ORDER BY day DESC,id DESC LIMIT 200""")
+                # Uma fonte de verdade: 'questions' agrega registros antigos e
+                # detalhados; os metadados de batches são opcionais.
+                rows=all_rows(c, """SELECT q.id,q.day,q.subject,q.topic,
+                    q.platform,q.bank AS banca,q.total,q.correct,
+                    COALESCE(qb.unanswered,0) AS unanswered,
+                    qb.mode AS mode,COALESCE(qb.status,'legacy') AS status,
+                    qb.id AS batch_id
+                    FROM questions q
+                    LEFT JOIN question_batches qb ON qb.legacy_question_id=q.id
+                        AND qb.status='finalized'
+                    ORDER BY q.day DESC,q.id DESC LIMIT 200""")
                 return self._json(200,{'items':rows})
             finally:c.close()
         if route=='/api/questions/caderno':

@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feat/integra-erros-reforcos-v081
+      - chore/organizacao-segura-historico-v082
   pull_request:
     branches:
       - feat/cronogramas-identidade-v07
