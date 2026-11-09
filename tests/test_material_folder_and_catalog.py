@@ -67,7 +67,7 @@ class FolderCatalogTests(unittest.TestCase):
         catalog=lesson_catalog.status(self.conn)
         contab=next(x for x in catalog['subjects'] if x['subject']=='Contabilidade Geral')
         aula=next(x for x in contab['lessons'] if x['lesson']=='Aula 00')
-        self.assertEqual(len(aula['materials']),4)
+        self.assertEqual(len(aula['materials']),3)  # Passo tem numeração própria; sem equivalência temática segura.
 
     def test_no_linking_to_wrong_aula(self):
         self.pdf('1 - Contabilidade Geral e Avançada SEFAZ RS/Teoria Principal','aula_29.pdf')
