@@ -107,7 +107,8 @@ def status(c):
             'subjects':subjects,'unmapped_pdfs':unmapped,'supplemental_lessons':extra,
             'source':('Lista pessoal de aulas e PDFs catalogados. Não constitui edital oficial.'
                       if catalog else 'Não foi localizado CSV pessoal: exibindo apenas aulas identificadas nos PDFs catalogados.'),
-            'pending_subjects':[x['subject'] for x in subjects if not x['lesson_count']]}
+            'pending_subjects':[x['subject'] for x in subjects
+                if x['subject'] in EXPECTED_SUBJECTS and not x['lesson_count']]}
 
 
 def _has_table(c,name):
