@@ -6,11 +6,13 @@ on:
       - chore/organizacao-segura-historico-v082
       - feat/guia-edital-anki-diagnostico-v083
       - feat/provas-bancas-materiais-brand-v084
+      - feat/catalogo-edital-imagens-v085
   pull_request:
     branches:
       - feat/cronogramas-identidade-v07
       - chore/organizacao-segura-historico-v082
       - feat/guia-edital-anki-diagnostico-v083
+      - feat/provas-bancas-materiais-brand-v084
 jobs:
   testes:
     runs-on: ubuntu-latest
@@ -40,3 +42,4 @@ jobs:
           node --check web/modules/assessment_insights.js
           node --check web/modules/question_bank.js
           node --check web/modules/sources.js
+          node --check web/modules/curriculum.js
