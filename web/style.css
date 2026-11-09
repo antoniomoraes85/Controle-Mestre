@@ -442,3 +442,29 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
  .cm-cycle-edit{grid-template-columns:1fr}
  .cm-plan-toggle{flex-direction:column}
 }
+
+/* v0.8.8: destaques pedagógicos por evidência, não por estimativa disfarçada */
+.cm-priority-box{margin:19px 0;padding:17px;border:1px solid #927129;border-radius:14px;
+  background:linear-gradient(130deg,#202631,#27261d)}
+.cm-priority-box>summary{cursor:pointer;color:#ffe393}
+.cm-priority-cycle-label{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  margin:14px 0;color:#f7df9d;font-weight:700}
+.cm-priority-cycle-label select{min-width:240px;background:#111b25;color:#f4f5f6;
+  border:1px solid #77818b;border-radius:8px;padding:10px}
+.cm-priority-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.cm-priority-card{background:#171f2b;border:1px solid #44566b;border-left:4px solid #ddb74a;
+  padding:13px 15px;border-radius:10px;display:flex;flex-direction:column;gap:8px}
+.cm-priority-card strong{color:#f5d77e;font-size:12px}
+.cm-priority-card p{font-size:13px;line-height:1.55;color:#eff2f6;margin:0}
+.cm-priority-card small{font-size:11px;color:#b9c9d9}
+.cm-priority-card details{font-size:11px;color:#b9c9d9}
+.cm-priority-card summary{cursor:pointer;color:#ffdd85}
+.cm-priority-card .btn{align-self:start;margin-top:auto}
+.cm-priority-level{display:inline-flex;border:1px solid #887038;border-radius:8px;
+  padding:6px 9px;background:#544421;color:#ffecb0;font-weight:800;font-size:12px}
+.cm-inc-level[data-level="6"],.cm-inc-level[data-level="7"]{
+  border-color:#c6933b;color:#fff2b5;background:#5e4a22}
+.cm-inc-level[data-level="8"],.cm-inc-level[data-level="9"],.cm-inc-level[data-level="10"]{
+  border-color:#df806d;color:#ffddce;background:#62332b}
+@media(max-width:1150px){.cm-priority-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.cm-priority-cards{grid-template-columns:1fr}}
