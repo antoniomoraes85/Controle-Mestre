@@ -24,7 +24,12 @@ from lesson_question_links import save as lesson_link_save
 from curriculum_insights import report as curriculum_report
 from material_autolink import infer as auto_link_materials
 from topic_importance import save as topic_importance_save
-from cycle_planner import read as cycle_read, create as cycle_create, add_segment as cycle_add, mark as cycle_mark
+from cycle_planner import (
+    read as cycle_read, create as cycle_create, add_segment as cycle_add,
+    mark as cycle_mark, set_mode as cycle_set_mode,
+    modify_segment as cycle_modify, move_segment as cycle_move,
+    archive_segment as cycle_archive,
+)
 
 from adaptive import diagnose, preview_plan, apply_plan
 from smart_reinforcement import recommend as recommend_reinforcements
@@ -343,6 +348,16 @@ class AppHandler(BaseHTTPRequestHandler):
                 return self._json(200,auto_link_materials(c,apply=True))
             if route=='/api/curriculum/importance':
                 return self._json(200,topic_importance_save(c,args.get('subject'),args.get('topic'),args.get('level')))
+            if route=='/api/study-cycles/mode':
+                return self._json(200,cycle_set_mode(c,args.get('mode')))
+            if route=='/api/study-cycles/item/edit':
+                return self._json(200,cycle_modify(c,args.get('segment_id'),
+                    args.get('subject'),args.get('topic',''),args.get('method'),args.get('blocks')))
+            if route=='/api/study-cycles/item/move':
+                return self._json(200,cycle_move(c,args.get('segment_id'),args.get('direction')))
+            if route=='/api/study-cycles/item/archive':
+                if args.get('confirm') is not True:raise ValueError('Confirmação obrigatória.')
+                return self._json(200,cycle_archive(c,args.get('segment_id')))
             if route=='/api/study-cycles/create':
                 return self._json(201,cycle_create(c,args.get('title'),args.get('kind','Ciclo'),args.get('parent_id')))
             if route=='/api/study-cycles/item':
