@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 import atualizador
+import INSTALAR_CONTROLE_MESTRE as instalador
 
 
 class AtualizadorTests(unittest.TestCase):
@@ -38,6 +39,14 @@ class AtualizadorTests(unittest.TestCase):
 
     def tearDown(self):
         self.tmp.cleanup()
+
+    def test_revisao_inicial_coincide_com_manifesto_oficial(self):
+        """Evita instalar ZIP de um commit inexistente ou obsoleto."""
+        path = Path(__file__).resolve().parents[1] / "versao_oficial.json"
+        manifesto = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(instalador.REVISION, manifesto["revisao"])
+        self.assertTrue(instalador.ARCHIVE_URL.endswith("/" + manifesto["revisao"]))
+        self.assertEqual(manifesto["archive_url"], instalador.ARCHIVE_URL)
 
     def test_sqlite_backup_transacional_e_quick_check(self):
         # Criar banco sqlite válido com tabela e dados
