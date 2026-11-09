@@ -92,6 +92,7 @@ def detect_subject(folder):
 
 def detect_type(folder):
     x=norm(folder)
+    if 'bizu estrategico' in x or re.search(r'\bbizu\b',x):return 'Bizu Estratégico'
     if 'passo' in x:return 'Passo Estratégico'
     if 'questoes' in x:return 'Questões'
     if 'simplificad' in x:return 'Simplificado'
@@ -217,7 +218,10 @@ def scan_pdfs(c):
             # Não apagar históricos ou vínculos já registrados.
             c.execute("UPDATE study_materials SET status='Ausente' WHERE id=?",(row['id'],))
     c.commit()
+    from material_autolink import infer
+    auto=infer(c,apply=True)
     return {'scanned':found,'errors':errors[:30],
+            'auto_linked':auto,
             'roots':[{'kind':kind,'path':str(root)} for kind,root in roots(c)]}
 
 
@@ -239,7 +243,7 @@ def assign_material(c, ident, subject='', topic='', course='', lesson='', materi
     if material_type is None:
         c.execute('''UPDATE study_materials SET subject=?,topic=?,course=?,lesson=? WHERE id=?''', (*fields, ident))
     else:
-        if material_type not in ('Teoria','Passo Estratégico','Questões','Simplificado'):raise ValueError('Tipo de material inválido')
+        if material_type not in ('Teoria','Passo Estratégico','Bizu Estratégico','Questões','Simplificado'):raise ValueError('Tipo de material inválido')
         c.execute('''UPDATE study_materials SET subject=?,topic=?,course=?,lesson=?,material_type=? WHERE id=?''', (*fields,material_type, ident))
     c.commit()
     return {'ok': True}

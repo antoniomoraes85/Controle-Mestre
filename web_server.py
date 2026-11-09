@@ -22,6 +22,15 @@ from assessment_insights import report as assess_insights_report, record as port
 from question_bank import report as question_bank_report
 from lesson_question_links import save as lesson_link_save
 from curriculum_insights import report as curriculum_report
+from material_autolink import infer as auto_link_materials
+from topic_importance import save as topic_importance_save
+from cycle_planner import (
+    read as cycle_read, create as cycle_create, add_segment as cycle_add,
+    mark as cycle_mark, set_mode as cycle_set_mode,
+    modify_segment as cycle_modify, move_segment as cycle_move,
+    archive_segment as cycle_archive,
+)
+
 from adaptive import diagnose, preview_plan, apply_plan
 from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
@@ -132,6 +141,10 @@ class AppHandler(BaseHTTPRequestHandler):
             c=connect()
             try:return self._json(200,study_time_report(c))
             finally:c.close()
+        if route=='/api/study-cycles':
+            c=connect()
+            try:return self._json(200,cycle_read(c))
+            finally:c.close()
         if route=='/api/curriculum':
             c=connect()
             try:return self._json(200,curriculum_report(c))
@@ -174,18 +187,19 @@ class AppHandler(BaseHTTPRequestHandler):
             try:
                 path=path_for_material(c,int(route.rsplit('/',1)[-1]))
                 size=path.stat().st_size
+                download=parse_qs(urlsplit(self.path).query).get('download',['0'])[0]=='1'
                 self.send_response(200)
                 for k,v in [('Content-Type','application/pdf'),('Content-Length',str(size)),
                             ('X-Content-Type-Options','nosniff'),('Cache-Control','no-store'),
                             ('Content-Security-Policy',"default-src 'none'; sandbox"),
-                            ('Content-Disposition','inline')]:self.send_header(k,v)
+                            ('Content-Disposition',('attachment; filename="controle-mestre-material.pdf"' if download else 'inline'))]:self.send_header(k,v)
                 self.end_headers()
                 with path.open('rb') as pdf:
                     for chunk in iter(lambda:pdf.read(1024*1024),b''):self.wfile.write(chunk)
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.5','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.7','mode':'private-local','multiuser':False})
         # --- Rastreamento de erros ---
         if route=='/api/assessment/insights':
             c=connect()
@@ -321,6 +335,37 @@ class AppHandler(BaseHTTPRequestHandler):
                     args.get('total'),args.get('correct'),args.get('error_type',''),args.get('notes',''),args.get('day')))
             if route=='/api/sources/root':
                 return self._json(200,set_external_root(c,args.get('path',''),args.get('confirm') is True))
+            if route=='/api/materials/open':
+                # Abertura segura pelo aplicativo leitor padrão do Windows;
+                # o caminho é recuperado EXCLUSIVAMENTE por ID cadastrado.
+                if args.get('confirm') is not True:raise ValueError('Confirmação obrigatória.')
+                if os.name!='nt':raise ValueError('Abertura externa disponível somente no Windows.')
+                target=path_for_material(c,int(args.get('id')))
+                os.startfile(str(target))
+                return self._json(200,{'ok':True,'message':'PDF aberto no leitor padrão do Windows.'})
+            if route=='/api/sources/autolink':
+                if args.get('confirm') is not True:raise ValueError('Confirme a vinculação automática.')
+                return self._json(200,auto_link_materials(c,apply=True))
+            if route=='/api/curriculum/importance':
+                return self._json(200,topic_importance_save(c,args.get('subject'),args.get('topic'),args.get('level')))
+            if route=='/api/study-cycles/mode':
+                return self._json(200,cycle_set_mode(c,args.get('mode')))
+            if route=='/api/study-cycles/item/edit':
+                return self._json(200,cycle_modify(c,args.get('segment_id'),
+                    args.get('subject'),args.get('topic',''),args.get('method'),args.get('blocks')))
+            if route=='/api/study-cycles/item/move':
+                return self._json(200,cycle_move(c,args.get('segment_id'),args.get('direction')))
+            if route=='/api/study-cycles/item/archive':
+                if args.get('confirm') is not True:raise ValueError('Confirmação obrigatória.')
+                return self._json(200,cycle_archive(c,args.get('segment_id')))
+            if route=='/api/study-cycles/create':
+                return self._json(201,cycle_create(c,args.get('title'),args.get('kind','Ciclo'),args.get('parent_id')))
+            if route=='/api/study-cycles/item':
+                return self._json(201,cycle_add(c,args.get('cycle_id'),args.get('subject'),
+                    args.get('topic',''),args.get('method'),args.get('blocks')))
+            if route=='/api/study-cycles/mark':
+                return self._json(200,cycle_mark(c,args.get('segment_id'),args.get('block_number'),
+                    args.get('done',True)))
             if route=='/api/sources/scan':
                 return self._json(200,scan_pdfs(c))
             if route=='/api/sources/material':

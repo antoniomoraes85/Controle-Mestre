@@ -18,7 +18,21 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-DB_PATH = Path(os.environ.get('CONTROLE_MESTRE_DB', ROOT/'dados'/'controle_mestre.db'))
+
+
+def _default_db_path() -> Path:
+    env_db = os.environ.get('CONTROLE_MESTRE_DB')
+    if env_db:
+        return Path(env_db)
+    local_appdata = os.environ.get('LOCALAPPDATA')
+    if local_appdata:
+        std = Path(local_appdata) / 'ControleMestre' / 'dados' / 'controle_mestre.db'
+        if std.is_file() or (Path(local_appdata) / 'ControleMestre').is_dir():
+            return std
+    return ROOT / 'dados' / 'controle_mestre.db'
+
+
+DB_PATH = _default_db_path()
 DEFAULT_SUBJECTS = [
  ('Legislação Tributária RS I',10,'Fiscal'), ('Legislação Tributária RS II',10,'Fiscal'),
  ('Direito Tributário',10,'Fiscal'), ('Reforma Tributária — EC 132 e LC 214',10,'Fiscal'),
@@ -33,7 +47,7 @@ DEFAULT_SUBJECTS = [
 ]
 DAY_CAPS = {'Plantão':120, 'Pós-plantão':90, 'Livre forte':360, 'Livre leve':180,
             'Mestrado':90, 'Aula particular':150, 'Reset':0}
-METHODS = ['Teoria','Questões','Lei seca','Revisão','Flashcards','Caderno de erros','Simulado','Aula particular']
+METHODS = ['Teoria','Questões','Lei seca','Revisão','Flashcards','Anki','Caderno de erros','Simulado','Aula particular']
 REVIEW_DELAYS = (1,7,15,30)
 
 def norm(s):

@@ -7,12 +7,16 @@ on:
       - feat/guia-edital-anki-diagnostico-v083
       - feat/provas-bancas-materiais-brand-v084
       - feat/catalogo-edital-imagens-v085
+      - feat/usabilidade-catalogo-ciclos-v086
+      - feat/planejamento-ciclico-integrado-v087
   pull_request:
     branches:
       - feat/cronogramas-identidade-v07
       - chore/organizacao-segura-historico-v082
       - feat/guia-edital-anki-diagnostico-v083
       - feat/provas-bancas-materiais-brand-v084
+      - feat/catalogo-edital-imagens-v085
+      - feat/usabilidade-catalogo-ciclos-v086
 jobs:
   testes:
     runs-on: ubuntu-latest
@@ -43,3 +47,4 @@ jobs:
           node --check web/modules/question_bank.js
           node --check web/modules/sources.js
           node --check web/modules/curriculum.js
+          node --check web/modules/cycle_planner.js

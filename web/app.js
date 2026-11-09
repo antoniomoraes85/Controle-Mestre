@@ -15,6 +15,7 @@ import {renderAnkiAnalytics} from './modules/anki_analytics.js';
 import {renderAssessmentInsights, portugueseForm} from './modules/assessment_insights.js';
 import {renderQuestionBankPerformance} from './modules/question_bank.js';
 import {renderCurriculum} from './modules/curriculum.js';
+import {renderCyclePlanner} from './modules/cycle_planner.js';
 const $=(s,root=document)=>root.querySelector(s);
 const $$=(s,root=document)=>Array.from(root.querySelectorAll(s));
 const dayNames=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -96,11 +97,42 @@ function heroBanner(d){const m=d.metrics;return `<section class="cm-new-hero" id
 </section>`}
 function overviewView(d){const m=d.metrics;const activeDays=new Set(d.sessions.filter(s=>s.day>=d.week_start&&s.day<=d.today).map(s=>s.day)).size;const average=activeDays?m.weekly_minutes/activeDays:0;const tasks=state.filter==='pending'?d.plans.filter(x=>x.status!=='Concluída'):d.plans;return `${heroBanner(d)}${heading('Painel geral','Planeje com clareza, execute com constância e acompanhe o que realmente importa.',`<div class="heading-actions"><span class="pill"><span class="dot"></span> Pré-edital · SEFAZ-RS</span>${actionBtn('today','+ Registrar estudo','ghost')}</div>`)}${goalPanel(d)}${fiscalTodayPanel(d.fiscal,d.today)}<div class="metrics">${metric('Meu rendimento · 30 dias',pct(m.last30_questions.rate),m.last30_questions.rate==null?'Aguardando questões':'Acertos por questão','blue','◈')}${metric('Horas líquidas · semana',fmtHour(m.weekly_minutes),`Meta ${fmtHour(m.weekly_target)}`,'green','◷')}${metric('Questões resolvidas',fmtInt(m.week_questions.total),`${fmtInt(m.week_questions.correct)} acertos na semana`,'orange','✓')}${metric('Média por dia de estudo',fmtHour(Math.round(average)),activeDays?`${activeDays} dias ativos na semana`:'Nenhum dia ativo na semana','yellow','⌛')}</div><div class="content-grid"><section class="panel"><div class="panel-head"><div><h2>Atividades da minha meta</h2><p>Marque o que foi concluído para atualizar o progresso</p></div><span class="pill muted">${d.done} / ${d.plans.length} concluídas</span></div><div class="panel-content" style="padding-bottom:0"><div class="tabstrip"><button class="tab ${state.filter==='pending'?'active':''}" data-action="filter-pending">Pendentes</button><button class="tab ${state.filter==='all'?'active':''}" data-action="filter-all">Todas as atividades</button></div></div>${activitiesTable(tasks.slice(0,7),true)}${d.plans.length>7?`<div class="panel-content">${actionBtn('today','Visualizar todas →','ghost small')}</div>`:''}</section><section class="panel"><div class="panel-head"><div><h2>Prioridades por disciplina</h2><p>O que exige mais atenção no momento</p></div><span class="hint">ÍNDICE DE NECESSIDADE</span></div>${priorityPanel(d.ranking)}</section></div><div class="small-grid"><section class="panel"><div class="panel-head"><div><h2>Evolução da carga de estudos</h2><p>Horas líquidas registradas nas últimas 12 semanas</p></div><span class="hint">12 SEMANAS</span></div><div class="panel-content">${chartSvg(d.weeks)}</div></section><section class="panel"><div class="panel-head"><div><h2>Situação da preparação</h2><p>Indicadores que merecem acompanhamento</p></div></div><div class="panel-content"><div class="activity-list"><div class="activity-row"><div><b>Revisões pendentes vencidas</b><small>Revisões que ultrapassaram a data programada</small></div><strong>${m.overdue_reviews}</strong></div><div class="activity-row"><div><b>Flashcards Anki · semana</b><small>Dados importados do Anki, sem somar horas duas vezes</small></div><strong>${fmtInt(m.anki_cards)}</strong></div><div class="activity-row"><div><b>Questões · mês</b><small>Questões com resultado efetivamente registrado</small></div><strong>${fmtInt(m.month_questions.total)}</strong></div></div></div></section></div>`}
 function todayView(d){let tasks=d.plans.filter(x=>x.day===d.today);const row=d.days.find(x=>x.day===d.today);return `${heading('Estudar hoje','Atividades objetivas e acompanhamento do tempo de estudo.',`<div class="heading-actions">${actionBtn('open-session','+ Registrar sessão','primary')}${actionBtn('questions-form','+ Questões','ghost')}</div>`)}<div class="info-box">Hoje: <b>${dateFmt(d.today)}</b> · Tipo de dia: <b>${escapeHTML(row?.kind||'Livre leve')}</b> · Disponibilidade prevista: <b>${fmtHour(row?.cap_minutes||0)}</b>. O cronômetro permanece acessível no topo.</div><section class="panel"><div class="panel-head"><div><h2>Atividades planejadas para hoje</h2><p>Concluir uma meta não contabiliza automaticamente minutos de estudo.</p></div><span class="pill muted">${tasks.filter(x=>x.status==='Concluída').length} de ${tasks.length}</span></div>${activitiesTable(tasks)}</section>${fiscalTodayPanel(d.fiscal,d.today)}<div style="height:17px"></div><div class="small-grid"><section class="panel"><div class="panel-head"><h2>Registrar sessão de estudo</h2></div><div class="panel-content"><p class="subtitle" style="margin-bottom:20px">Registre disciplina, assunto e tempo líquido. Revise a sugestão de tipo de dia, principalmente quando estiver de plantão.</p>${actionBtn('open-session','Registrar minha sessão','primary')}</div></section><section class="panel"><div class="panel-head"><h2>Revisões pendentes</h2><span class="hint">${d.reviews.length} próximas</span></div><div class="panel-content">${d.reviews.length?d.reviews.slice(0,3).map(x=>`<div class="priority-item"><span class="rank">◷</span><div class="grow"><b>${escapeHTML(x.subject)}</b><small>${escapeHTML(x.topic)} · ${dateFmt(x.due_on)}</small></div></div>`).join(''):empty('Tudo em dia por enquanto','As revisões serão programadas conforme seus estudos.')}</div></section></div>`}
-function planView(d){return `${heading('Planejamento individual','Distribuição por disciplina, metas semanais e disponibilidade real.',actionBtn('generate','Recalcular esta semana','primary'))}<div class="info-box">A distribuição respeita limites por tipo de dia, como <b>plantões (máximo 2h)</b> e recuperação. As atividades já concluídas são preservadas no replanejamento.</div><div class="section-title"><h2>Disponibilidade da semana</h2><small>Semana ${shortDay(d.week_start)} a ${shortDay(d.week_end)}</small></div><div class="weekdays">${d.days.map(x=>`<div class="day-card"><h3>${dayNames[new Date(x.day+'T12:00:00').getDay()]}</h3><time>${dateFmt(x.day)}</time><span class="day-type">${escapeHTML(x.kind)}</span><strong class="day-duration">${fmtHour(x.cap_minutes)}</strong><button class="btn small" data-action="edit-day" data-day="${x.day}">Editar dia</button></div>`).join('')}</div><div style="height:18px"></div><section class="panel"><div class="panel-head"><h2>Atividades planejadas</h2><span class="hint">${d.plans.length} atividades</span></div>${activitiesTable(d.plans,true)}</section>`}
+function planView(d){
+const week=`<div class="info-box">A distribuição respeita limites por tipo de dia, como <b>plantões (máximo 2h)</b> e recuperação. As atividades já concluídas são preservadas no replanejamento.</div><div class="section-title"><h2>Disponibilidade da semana</h2><small>Semana ${shortDay(d.week_start)} a ${shortDay(d.week_end)}</small></div><div class="weekdays">${d.days.map(x=>`<div class="day-card"><h3>${dayNames[new Date(x.day+'T12:00:00').getDay()]}</h3><time>${dateFmt(x.day)}</time><span class="day-type">${escapeHTML(x.kind)}</span><strong class="day-duration">${fmtHour(x.cap_minutes)}</strong><button class="btn small" data-action="edit-day" data-day="${x.day}">Editar dia</button></div>`).join('')}</div><div style="height:18px"></div><section class="panel"><div class="panel-head"><h2>Atividades planejadas</h2><span class="hint">${d.plans.length} atividades</span></div>${activitiesTable(d.plans,true)}</section>`;
+return `${heading('Planejamento de estudos','Escolha Semana fixa ou Por ciclos e monte seu roteiro com disciplinas, assuntos e modalidades.')}
+ <section class="cm-plan-modes" aria-label="Modalidade do planejamento">
+   <div><strong>Como você quer organizar seus estudos?</strong>
+     <p>O modo escolhido permanece salvo. Alternar não exclui ciclos nem atividades semanais.</p></div>
+   <div class="cm-plan-toggle" role="group" aria-label="Escolha a modalidade">
+     <button type="button" class="btn cm-mode-option" data-action="planning-mode"
+       data-mode="Semana fixa" aria-pressed="false">▦ SEMANA FIXA</button>
+     <button type="button" class="btn cm-mode-option" data-action="planning-mode"
+       data-mode="Ciclo" aria-pressed="false">↻ POR CICLOS</button>
+   </div>
+ </section>
+ <div id="cm-plan-weekly" hidden>
+   <div class="cm-week-heading">${actionBtn('generate','Recalcular esta semana','primary')}</div>
+   ${week}
+ </div>
+ <div id="cm-plan-cyclic" hidden><div id="cm-plan-cycle-planner"></div></div>`
+}
+async function showPlanningMode(modeOverride){
+ const weekly=$('#cm-plan-weekly'),cyclic=$('#cm-plan-cyclic');
+ if(!weekly||!cyclic)return;
+ const data=modeOverride?{mode:modeOverride}:await api('study-cycles');
+ const cyclicSelected=data.mode==='Ciclo';
+ weekly.hidden=cyclicSelected;cyclic.hidden=!cyclicSelected;
+ for(const button of document.querySelectorAll('.cm-mode-option')){
+   const selected=button.dataset.mode===(cyclicSelected?'Ciclo':'Semana fixa');
+   button.classList.toggle('is-active',selected);
+   button.setAttribute('aria-pressed',String(selected));
+ }
+ if(cyclicSelected)await renderCyclePlanner($('#cm-plan-cycle-planner'));
+}
 function chartView(d){const m=d.metrics;return `${heading('Análise de desempenho','Indicadores reais e tendências da sua preparação, sem comparações inventadas.') }<div id="study-time-report"></div><div class="metrics">${metric('Rendimento · 30 dias',pct(m.last30_questions.rate),'Questões respondidas','blue','◈')}${metric('Tempo líquido · mês',fmtHour(m.monthly_minutes),'Sessões registradas','green','◷')}${metric('Questões · mês',fmtInt(m.month_questions.total),'Volume registrado','orange','✓')}${metric('Revisões vencidas',fmtInt(m.overdue_reviews),'Controle de pendências','yellow','↻')}</div><div class="small-grid"><section class="panel"><div class="panel-head"><h2>Evolução de horas</h2><span class="hint">12 SEMANAS</span></div><div class="panel-content">${chartSvg(d.weeks)}</div></section><section class="panel"><div class="panel-head"><h2>Radar de desempenho</h2><span class="hint">POR DISCIPLINA</span></div>${d.ranking.filter(x=>x.questoes>=15).length>=3?`<div class="panel-content">${d.ranking.filter(x=>x.questoes>=15).sort((a,b)=>b.rendimento-a.rendimento).slice(0,8).map(x=>`<div class="priority-item"><div class="grow"><b>${escapeHTML(x.disciplina)}</b><div class="micro-progress"><span style="width:${(x.rendimento*100).toFixed(1)}%"></span></div></div><strong>${pct(x.rendimento)}</strong></div>`).join('')}</div>`:empty('Diagnóstico em construção','É necessário resolver ao menos 15 questões em três disciplinas para gerar um perfil comparativo confiável.')}</section></div><div style="height:16px"></div><section class="panel"><div class="panel-head"><h2>Desempenho por disciplina</h2><span class="hint">ACERTOS PONDERADOS</span></div>${rankTable(d.ranking)}</section>`}
 function rankTable(rows){return `<div class="table-wrap"><table class="act-table"><thead><tr><th>Disciplina</th><th>Peso</th><th>Horas</th><th>Questões</th><th>Acertos</th><th>Progresso da teoria</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHTML(x.disciplina)}</td><td>${fmt(x.peso)}</td><td>${fmt(x.horas)} h</td><td>${fmtInt(x.questoes)}</td><td>${pct(x.rendimento)}</td><td>${x.progresso===null?'—':fmt(x.progresso)+'%'}</td></tr>`).join('')}</tbody></table></div>`}
-function subjectsView(d){return `${heading('Disciplinas e conteúdos','Visão consolidada por assunto, incidência e lacunas de desempenho.')}<section class="panel"><div class="panel-head"><h2>Matriz de disciplinas</h2><span class="hint">${d.subjects.length} DISCIPLINAS</span></div>${rankTable(d.ranking)}</section><div class="info-box" style="margin-top:17px">Os pesos são configuráveis no Streamlit. A incidência histórica e o nível de domínio não são tratados como resultados de prova sem fonte verificável.</div>`}
-function cycleView(d){return `${heading('Ciclos de estudos','Organize sua sequência de disciplinas e acompanhe os registros de tempo.')}<div class="info-box">O motor atual já registra sessões associadas aos ciclos 1 a 10. A interface de marcadores de 30 minutos e fechamento de rodadas está prevista para uma versão posterior, com preservação do histórico.</div><section class="panel"><div class="panel-head"><h2>Tempo registrado por ciclo</h2></div><div class="panel-content">${d.cycles?.length?d.cycles.map(x=>`<div class="priority-item"><span class="rank">${x.cycle}</span><div class="grow"><b>${escapeHTML(x.subject)}</b><small>${fmtHour(x.minutes)} acumulados no ciclo</small></div></div>`).join(''):empty('Sem ciclos contabilizados','Associe a sessão de estudo a um ciclo pela interface de registro, disponível na versão Streamlit.')}</div></section>`}
+function subjectsView(d){return `${heading('Disciplinas e conteúdos','Clique em uma disciplina para consultar aulas, assuntos, incidência, importância, PDFs e rendimento.')}<div id="cm-subject-curriculum"></div>`}
+function cycleView(d){return `${heading('Ciclos e microciclos de estudos','Crie ciclos por matéria e microciclos por assunto, com modalidades e blocos de 30 minutos.')}<div id="cm-cycle-planner"></div>`}
 function guideView(d){return `${heading('Meu guia de estudos e incidências','Crie um guia próprio, acompanhe progresso e consulte as fontes dos percentuais históricos.')}
 <div id="curriculum-report"></div><div id="study-guide-panel"></div>`}
 function questionsView(d){return `
@@ -159,6 +191,9 @@ function setupHeroParallax(){
 function render(){const d=state.data;if(!d)return;setupBrandLogo();$('#side-nav').innerHTML=navMarkup();$('#crumb').textContent=views[state.page];const chips={home:overviewView,today:todayView,plan:planView,insights:d=>adaptiveView(d,{heading,actionBtn}),chart:chartView,subjects:subjectsView,cycle:cycleView,guide:guideView,questions:questionsView,review:reviewsView,assess:assessmentsView,sources:d=>sourcesView(d,{heading}),fiscal:d=>fiscalView(d,{heading},state.fiscalPreview),archive:archiveView,settings:settingsView};$('#content').innerHTML=chips[state.page](d);
 if(state.page==='guide')renderStudyGuide($('#study-guide-panel')).catch(e=>toast(e.message,true));
 if(state.page==='guide')renderCurriculum($('#curriculum-report')).catch(e=>toast(e.message,true));
+if(state.page==='subjects')renderCurriculum($('#cm-subject-curriculum'),{includeEmpty:true}).catch(e=>toast(e.message,true));
+if(state.page==='cycle')renderCyclePlanner($('#cm-cycle-planner')).catch(e=>toast(e.message,true));
+if(state.page==='plan')showPlanningMode().catch(e=>toast('Não foi possível carregar o modo: '+e.message,true));
 if(state.page==='home')setupHeroParallax();
 if(state.page==='chart')renderStudyTime($('#study-time-report')).catch(e=>toast(e.message,true));
 if(state.page==='review')renderAnkiAnalytics($('#anki-analytics-report')).catch(e=>toast(e.message,true));
@@ -197,6 +232,14 @@ const studyTimer=createStudyTimer({
 });
 async function handleAction(el){const action=el.dataset.action;try{
  if(views[action]){navigate(action);return}
+ if(action==='planning-mode'){
+   const mode=el.dataset.mode;
+   if(!['Semana fixa','Ciclo'].includes(mode))throw Error('Modalidade inválida.');
+   await api('study-cycles/mode',{mode});
+   await showPlanningMode(mode);
+   toast(mode==='Ciclo'?'Modo por ciclos ativado. Monte seu roteiro abaixo.':'Modo semanal ativado.');
+   return;
+ }
  if(action==='filter-pending'||action==='filter-all'){state.filter=action==='filter-all'?'all':'pending';render();return}
  if(action==='close-modal'){$('#modal-backdrop').hidden=true;return}
  if(action==='open-session'){sessionForm();return}
@@ -280,13 +323,35 @@ async function handleAction(el){const action=el.dataset.action;try{
    await api('sources/root',{path:path.trim(),confirm:true});
    await load();navigate('sources');toast('Pasta configurada. Clique em Atualizar biblioteca.');return;
  }
+ if(action==='open-material'){
+    const id=Number(el.dataset.id);
+    if(!Number.isInteger(id)||id<=0)throw Error('Material inválido.');
+    try{
+      await api('materials/open',{id,confirm:true});
+      toast('PDF enviado ao leitor padrão do Windows.');
+    }catch(err){
+      if(confirm('Não foi possível abrir no leitor do Windows: '+err.message+'\\nDeseja baixar o PDF para abrir manualmente?')){
+        window.location.href='/api/fiscal/pdf/'+id+'?download=1';
+      }
+    }
+    return;
+ }
+ if(action==='autolink-materials'){
+   if(!confirm('Analisar PDFs já catalogados e preencher somente disciplinas/assuntos vazios quando houver correspondência segura? Nenhum vínculo manual será substituído.'))return;
+   const result=await api('sources/autolink',{confirm:true});
+   await load();
+   toast('Vínculos automáticos: '+result.subjects_assigned+' disciplinas, '+
+      result.topics_assigned+' assuntos, '+result.types_assigned+' tipos. '+
+      result.remaining_unlinked+' ainda exigem revisão.');
+   return;
+ }
  if(action==='scan-materials'){
    const result=await api('sources/scan',{});
-   await load();toast(`${result.scanned} PDF(s) catalogado(s)${result.errors.length?' · '+result.errors.length+' aviso(s)':''}.`);return;
+   await load();toast(`${result.scanned} PDF(s) catalogado(s) · ${result.auto_linked?.topics_assigned||0} novo(s) assunto(s) vinculado(s). ${result.errors.length?' · '+result.errors.length+' aviso(s)':''}`);return;
  }
  if(action==='edit-material'){
    const item=state.data.sources.materials.find(x=>x.id===Number(el.dataset.id));if(!item)return;
-   modal('Vincular aula ao edital',`<form><div class="fields"><div class="field"><label>Curso</label><input name="course" maxlength="180" value="${escapeHTML(item.course)}"></div><div class="field"><label>Aula</label><input name="lesson" maxlength="180" value="${escapeHTML(item.lesson)}"></div></div><div class="fields"><div class="field"><label>Disciplina</label><select name="subject"><option value="">— Escolher —</option>${state.data.subjects.map(x=>`<option value="${escapeHTML(x.name)}" ${x.name===item.subject?'selected':''}>${escapeHTML(x.name)}</option>`).join('')}</select></div><div class="field"><label>Assunto</label><input name="topic" maxlength="180" value="${escapeHTML(item.topic)}"></div></div><div class="field"><label>Tipo de material</label><select name="material_type">${selectOptions(['Teoria','Simplificado','Questões','Passo Estratégico'],item.material_type||'Teoria')}</select></div>${baseFormActions}</form>`,async f=>{await api('sources/material',{id:item.id,subject:f.get('subject'),topic:f.get('topic'),course:f.get('course'),lesson:f.get('lesson'),material_type:f.get('material_type')})});return;
+   modal('Vincular aula ao edital',`<form><div class="fields"><div class="field"><label>Curso</label><input name="course" maxlength="180" value="${escapeHTML(item.course)}"></div><div class="field"><label>Aula</label><input name="lesson" maxlength="180" value="${escapeHTML(item.lesson)}"></div></div><div class="fields"><div class="field"><label>Disciplina</label><select name="subject"><option value="">— Escolher —</option>${state.data.subjects.map(x=>`<option value="${escapeHTML(x.name)}" ${x.name===item.subject?'selected':''}>${escapeHTML(x.name)}</option>`).join('')}</select></div><div class="field"><label>Assunto</label><input name="topic" maxlength="180" value="${escapeHTML(item.topic)}"></div></div><div class="field"><label>Tipo de material</label><select name="material_type">${selectOptions(['Teoria','Simplificado','Questões','Passo Estratégico','Bizu Estratégico'],item.material_type||'Teoria')}</select></div>${baseFormActions}</form>`,async f=>{await api('sources/material',{id:item.id,subject:f.get('subject'),topic:f.get('topic'),course:f.get('course'),lesson:f.get('lesson'),material_type:f.get('material_type')})});return;
  }
  if(action==='new-tec-bookmark'){
    modal('Salvar caderno TEC Concursos',`<form><div class="fields"><div class="field"><label>Título do caderno</label><input name="title" maxlength="180" required></div><div class="field"><label>URL oficial (https://www.tecconcursos.com.br/...)</label><input type="url" name="url" required></div></div><div class="fields"><div class="field"><label>Disciplina</label><select name="subject"><option value="">— Opcional —</option>${state.data.subjects.map(x=>`<option>${escapeHTML(x.name)}</option>`).join('')}</select></div><div class="field"><label>Assunto</label><input name="topic" maxlength="180"></div></div>${baseFormActions}</form>`,async f=>{await api('tec/bookmark',{title:f.get('title'),url:f.get('url'),subject:f.get('subject'),topic:f.get('topic')})});return;

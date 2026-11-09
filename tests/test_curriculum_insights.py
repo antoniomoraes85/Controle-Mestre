@@ -32,8 +32,8 @@ class CurriculumTests(unittest.TestCase):
             data=curriculum_insights.report(self.c)
         self.assertEqual(data['stats']['pdfs'],1)
         self.assertEqual(data['total_topics'],1)
-        self.assertEqual(data['subjects'][0]['topics'][0]['pdfs'][0]['name'],'aula03.pdf')
-        self.assertIsNone(data['subjects'][0]['topics'][0]['incidence_pct'])
+        self.assertEqual(next(x for x in data['subjects'] if x['subject']=='Direito Tributário')['topics'][0]['pdfs'][0]['name'],'aula03.pdf')
+        self.assertAlmostEqual(next(x for x in data['subjects'] if x['subject']=='Direito Tributário')['topics'][0]['incidence_pct'],8.41)
 
     def test_completion_and_incidence_preserve_source(self):
         study_guide.save_entry(self.c,self.guide,{
@@ -44,7 +44,7 @@ class CurriculumTests(unittest.TestCase):
         study_guide.progress(self.c,self.guide,e['id'],'Concluído',100)
         with patch.object(curriculum_insights,'catalog_lessons',return_value=[]):
             data=curriculum_insights.report(self.c)
-        x=data['subjects'][0]['topics'][0]
+        x=next(x for x in data['subjects'] if x['subject']=='Direito Tributário')['topics'][0]
         self.assertEqual(x['progress'],100)
         self.assertEqual(x['incidence_pct'],8.41)
         self.assertIn('Bizu',x['incidence_source'])

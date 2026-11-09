@@ -71,6 +71,11 @@ def status(c):
     extra=0
     unmapped=0
     for d in docs:
+        # Bizus/Passos podem numerar aulas por outra matriz curricular.
+        # Não vincular pelo número da aula sem título de assunto explícito.
+        if d['material_type'] in ('Bizu Estratégico','Passo Estratégico') and not d['topic']:
+            unmapped+=1
+            continue
         subject=d['subject']
         lesson=d['lesson']
         if not subject or not lesson:
