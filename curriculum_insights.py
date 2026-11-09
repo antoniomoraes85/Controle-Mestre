@@ -10,17 +10,35 @@ from lesson_catalog import lessons as catalog_lessons
 from study_guide import prepare as prepare_guide
 from sources import prepare as prepare_sources
 from bizu_seed import rows as bizu_rows
-from topic_importance import read as importance_read,level_for_incidence
+from topic_importance import read_details as importance_read_details
+from curriculum_evidence import read_verified as evidence_read_verified
+from curriculum_topic_links import read_verified as topic_links_read_verified
+from priority_engine import score as priority_score
 
 def report(c):
     prepare_guide(c);prepare_sources(c)
     result={}
     stats={'guide':0,'catalog':0,'topics':0,'pdfs':0}
-    importance=importance_read(c)
+    importance=importance_read_details(c)
+    approved=evidence_read_verified(c)
+    weight_by_subject={k:float(w) for k,w,_ in DEFAULT_SUBJECTS}
     historical={}
     for raw in bizu_rows():
         if raw['incidence_pct'] is not None:
             historical[(norm(raw['subject']),norm(raw['topic']))]=raw
+    def verified_incidence(subject,topic):
+        records=approved.get((norm(subject),norm(topic)),[])
+        pct=[x for x in records if x['incidence_pct'] is not None]
+        if not pct:return None
+        distinct={round(float(x['incidence_pct']),5) for x in pct}
+        if len(distinct)!=1:
+            return {'pct':None,'source':'Fontes verificadas divergentes; revisão necessária',
+                    'conflict':True}
+        x=pct[-1]
+        return {'pct':float(x['incidence_pct']),
+                'source':f"{x['material_type']} · {x['document_reference']} · p. {x['page']}"+(
+                  ' · '+x['bank'] if x.get('bank') else ''),
+                'conflict':False}
     def documented_incidence(subject,topic):
         key=(norm(subject),norm(topic))
         if key in historical:return historical[key]
@@ -39,7 +57,7 @@ def report(c):
         entry=result.setdefault(k,{'subject':subject,'topic':topic,
             'lesson':'','status':'Não iniciado','progress':0,
             'incidence_pct':None,'incidence_source':'',
-            'pdfs':[],'origins':[],'guide_id':None,'entry_id':None,'total_questions':0,'correct_questions':0})
+            'pdfs':[],'subtopics':[],'origins':[],'guide_id':None,'entry_id':None,'total_questions':0,'correct_questions':0})
         if source not in entry['origins']:entry['origins'].append(source)
         if entry['incidence_pct'] is None:
             historical_row=documented_incidence(subject,topic)
@@ -73,6 +91,21 @@ def report(c):
         e=add(row['disciplina'],row['assunto'],'Catálogo de aulas',lesson=row['aula'])
         if e:by_lesson[(norm(row['disciplina']),norm(row['aula']))].append(e)
     stats['catalog']=len(catalog)
+    # Vínculos n:m confirmados a partir dos PDFs locais: uma aula pode conter
+    # muitos assuntos e um assunto pode estar em diversas aulas.
+    approved_links=topic_links_read_verified(c)
+    linked_ids=set()
+    for link in approved_links:
+        entry=add(link['subject'],link['topic'],'Sumário de PDF confirmado',
+                  lesson=link['lesson'])
+        if not entry:continue
+        if link['subtopic'] and link['subtopic'] not in entry['subtopics']:
+            entry['subtopics'].append(link['subtopic'])
+        if link['material_id'] not in {x['id'] for x in entry['pdfs']}:
+            entry['pdfs'].append({'id':link['material_id'],'name':link['file_name'],
+                                 'type':link['material_type']})
+        linked_ids.add(link['material_id'])
+    stats['pdf_topic_links']=len(approved_links)
     # Prioridade histórica da tabela topics NÃO é percentual; não reinterpretar.
     from_topics=all_rows(c,'SELECT subject,topic,lesson,progress FROM topics')
     for row in from_topics:
@@ -95,8 +128,9 @@ def report(c):
             possible=by_lesson.get((norm(pdf['subject']),norm(pdf['lesson'])),[])
             if len(possible)==1:e=possible[0]
         doc={'id':pdf['id'],'name':pdf['file_name'],'type':pdf['material_type']}
-        if e:e['pdfs'].append(doc)
-        else:unlinked.append({'id':pdf['id'],'subject':pdf['subject'],
+        if e:
+            if pdf['id'] not in {x['id'] for x in e['pdfs']}:e['pdfs'].append(doc)
+        elif pdf['id'] not in linked_ids:unlinked.append({'id':pdf['id'],'subject':pdf['subject'],
                               'lesson':pdf['lesson'],'file_name':pdf['file_name']})
     stats['pdfs']=len(pdfs)
     # Desempenho real apenas por assunto com nome exatamente normalizado.
@@ -110,10 +144,33 @@ def report(c):
     grouped=defaultdict(list)
     for row in result.values():
         k=(norm(row['subject']),norm(row['topic']))
+        verified=verified_incidence(row['subject'],row['topic'])
+        row['incidence_conflict']=bool(verified and verified['conflict'])
+        if verified:
+            row['incidence_pct']=verified['pct']
+            row['incidence_source']=verified['source']
         manual=importance.get(k)
-        row['importance_level']=manual if manual is not None else level_for_incidence(row['incidence_pct'])
-        row['importance_basis']='Definido por você' if manual is not None else (
-            'Faixa indicativa por incidência histórica (não oficial)' if row['incidence_pct'] is not None else 'Sem classificação')
+        # O progresso é fonte somente se houve lançamento pelo usuário;
+        # 0% criado automaticamente a partir de um CSV não é evidência.
+        tracked=any(origin in row['origins'] for origin in ('Guia de estudos','Tópicos antigos'))
+        suggestion=priority_score(
+            incidence_pct=row['incidence_pct'],
+            total_questions=row['total_questions'],
+            correct_questions=row['correct_questions'],
+            progress_pct=row['progress'] if tracked else None,
+            subject_weight=weight_by_subject.get(row['subject']))
+        row['priority_suggestion']=suggestion['priority']
+        row['priority_confidence']=suggestion['evidence_level']
+        row['priority_reason']=suggestion['reason']
+        row['suggested_method']=suggestion['suggested_method']
+        row['small_sample']=suggestion['sample_small']
+        row['importance_level']=manual['level'] if manual else suggestion['priority']
+        row['importance_basis']=(('Definido por você (escala antiga 1–5; revisar se desejar)' if manual['legacy']
+             else 'Definido por você (1–10)') if manual else
+            ('Sugestão calculada · '+suggestion['evidence_level'] if suggestion['priority'] is not None
+             else 'Sem dados suficientes para pontuar'))
+        row['importance_manual']=manual is not None
+        row['importance_scale']=manual['scale'] if manual else '1-10'
         row['question_rate']=(row['correct_questions']/row['total_questions']
                               if row['total_questions'] else None)
         grouped[row['subject']].append(row)
@@ -130,9 +187,14 @@ def report(c):
                          'progress_pct':round(completed,1),
                          'questions':total_questions,
                          'question_rate':(correct_questions/total_questions if total_questions else None)})
+    prioritized=sorted((x for x in result.values() if x['priority_suggestion'] is not None),
+        key=lambda x:(-x['priority_suggestion'],x['subject'],x['topic']))
     return {'subjects':subjects,'stats':stats,'unlinked_pdfs':unlinked,
+            'priority_suggestions':[{key:x[key] for key in ('subject','topic','priority_suggestion',
+                'priority_confidence','priority_reason','suggested_method','importance_level',
+                'importance_manual')} for x in prioritized[:25]],
             'total_topics':len(result),
             'total_progress_pct':round(sum(e['progress'] for e in result.values())/len(result),1) if result else None,
             'notice':('Percentuais são incidências HISTÓRICAS das fontes informadas, não pesos oficiais. '
-              'A conclusão é média dos tópicos cadastrados, não percentual de domínio do edital oficial. '
+              'A conclusão é média dos tópicos cadastrados, não percentual de domínio do edital oficial. Prioridade 1–10 é sugestão heurística, não incidência. '
               'Sem lista ou fonte, o assunto e a incidência permanecem não estimados.')}

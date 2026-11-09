@@ -9,6 +9,7 @@ on:
       - feat/catalogo-edital-imagens-v085
       - feat/usabilidade-catalogo-ciclos-v086
       - feat/planejamento-ciclico-integrado-v087
+      - feat/prioridade-inteligente-catalogo-v088
   pull_request:
     branches:
       - feat/cronogramas-identidade-v07

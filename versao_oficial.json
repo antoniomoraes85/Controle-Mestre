@@ -1,12 +1,12 @@
 {
   "produto": "CONTROLE MESTRE",
-  "versao": "0.8.7",
-  "revisao": "7855939bf11ed8ec266b4c515688491dcf5ffb75",
-  "branch_origem": "feat/usabilidade-catalogo-ciclos-v086",
+  "versao": "0.8.8",
+  "revisao": "ac96296a204c33a79f6a1f56ae75f33b45b1c00a",
+  "branch_origem": "feat/prioridade-inteligente-catalogo-v088",
   "data_publicacao": "2026-11-09",
   "status": "consolidada",
-  "descricao": "Versao 0.8.7 oficial consolidada com planejamento por ciclos integrado, alternancia persistente e editor de etapas.",
-  "archive_url": "https://api.github.com/repos/antoniomoraes85/Controle-Mestre/zipball/7855939bf11ed8ec266b4c515688491dcf5ffb75",
+  "descricao": "Versao 0.8.8 oficial com catalogacao curricular auditavel de 1.957 topicos e 774 incidencias estatisticas locais comprovadas.",
+  "archive_url": "https://api.github.com/repos/antoniomoraes85/Controle-Mestre/zipball/ac96296a204c33a79f6a1f56ae75f33b45b1c00a",
   "arquivos_obrigatorios": [
     "launch.py",
     "core.py",
@@ -38,6 +38,11 @@
     "material_autolink.py",
     "topic_importance.py",
     "cycle_planner.py",
-    "web/modules/cycle_planner.js"
+    "web/modules/cycle_planner.js",
+    "curriculum_topic_links.py",
+    "curriculum_evidence.py",
+    "priority_engine.py",
+    "local_curriculum_topics.py",
+    "local_curriculum_import.py"
   ]
 }

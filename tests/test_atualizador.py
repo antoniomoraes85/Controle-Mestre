@@ -43,10 +43,10 @@ class AtualizadorTests(unittest.TestCase):
     def test_manifesto_rejeita_branch_movel(self):
         manifesto = json.loads((Path(__file__).resolve().parents[1] /
                                 "versao_oficial.json").read_text(encoding="utf-8"))
-        self.assertEqual(atualizador.validate_release_manifest(manifesto)[0], "0.8.7")
+        self.assertEqual(atualizador.validate_release_manifest(manifesto)[0], "0.8.8")
         instavel = dict(manifesto, archive_url=(
             "https://api.github.com/repos/antoniomoraes85/Controle-Mestre/"
-            "zipball/feat/usabilidade-catalogo-ciclos-v086"))
+            "zipball/feat/prioridade-inteligente-catalogo-v088"))
         with self.assertRaises(ValueError):
             atualizador.validate_release_manifest(instavel)
 

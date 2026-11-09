@@ -27,8 +27,8 @@ import uuid
 import zipfile
 
 DEFAULT_REPO = "antoniomoraes85/Controle-Mestre"
-DEFAULT_BRANCH = "feat/usabilidade-catalogo-ciclos-v086"
-UPDATER_VERSION = "1.1.0"
+DEFAULT_BRANCH = "feat/prioridade-inteligente-catalogo-v088"
+UPDATER_VERSION = "1.2.0"
 OFFICIAL_MANIFEST_URL = (
     f"https://raw.githubusercontent.com/{DEFAULT_REPO}/{DEFAULT_BRANCH}/versao_oficial.json"
 )
