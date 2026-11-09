@@ -47,8 +47,7 @@ async function draw(root){
                      <span>${pc(t.progress)} · ${h(t.status)}</span></td>
                   <td>${t.total_questions? `${t.correct_questions}/${t.total_questions}
                      <strong>${pc(t.question_rate*100)}</strong>`:'Ainda não registrado'}</td>
-                  <td>${t.pdfs.length?t.pdfs.map(p=>`<a href="/api/fiscal/pdf/${p.id}"
-                     target="_blank" rel="noopener" class="cm-curr-file" title="${h(p.name)}">${h(p.type)} ↗</a>`).join('<br>'):
+                  <td>${t.pdfs.length?t.pdfs.map(p=>`<button type="button" class="btn small" data-action="open-material" data-id="${p.id}" title="${h(p.name)}">${h(p.type)} ↗</button>`).join('<br>'):
                       '<span class="cm-inc-unknown">Sem vínculo</span>'}</td>
                   <td>${t.entry_id?
                      `<button class="btn small" data-edit-progress="${t.entry_id}"
