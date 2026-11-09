@@ -72,7 +72,8 @@ def register(c,entries,verified=False):
                 qualitative=excluded.qualitative,bank=excluded.bank,
                 sample_period=excluded.sample_period,sample_count=excluded.sample_count,
                 excerpt=excluded.excerpt,
-                verified=excluded.verified,created_at=excluded.created_at""",row)
+                verified=excluded.verified,created_at=excluded.created_at
+              WHERE curriculum_evidence.verified=0 OR excluded.verified=1""",row)
         c.commit()
     except Exception:
         c.rollback()
