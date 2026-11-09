@@ -8,7 +8,7 @@ from datetime import datetime
 from core import all_rows,DEFAULT_SUBJECTS
 
 KINDS=('Ciclo','Microciclo','Semana fixa')
-METHODS=('Teoria','Questões','Lei seca','Revisão','Flashcards','Caderno de erros','Simulado')
+METHODS=('Teoria','Questões','Lei seca','Revisão','Flashcards','Anki','Caderno de erros','Simulado')
 SUBJECTS={x[0] for x in DEFAULT_SUBJECTS}
 def now():return datetime.now().astimezone().isoformat(timespec='seconds')
 def prepare(c):

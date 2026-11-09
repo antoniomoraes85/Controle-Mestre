@@ -28,7 +28,7 @@ import uuid
 import zipfile
 
 REPO = "antoniomoraes85/Controle-Mestre"
-REVISION = "c0718ddccf6c61c8062be5113a49b90c0dab39d5"
+REVISION = "4cc6d378ce5a42d95bfc32175320f2e0a0bc2c28"
 DEFAULT_BRANCH = "feat/usabilidade-catalogo-ciclos-v086"
 ARCHIVE_URL = f"https://api.github.com/repos/{REPO}/zipball/{REVISION}"
 
@@ -390,7 +390,7 @@ def install(*, base: Path, installer_dir: Path, archive: Path | None = None,
     # Gravar versao_instalada.json
     installed_record = {
         "produto": "CONTROLE MESTRE",
-        "versao": "0.8.6",
+        "versao": "0.8.7",
         "revisao": REVISION,
         "branch_origem": DEFAULT_BRANCH,
         "data_instalacao": datetime.now().isoformat(),

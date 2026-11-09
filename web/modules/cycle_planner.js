@@ -4,7 +4,7 @@ import {escapeHTML as h} from './format.js';
 let subjects=[],topics={};
 const esc=h;
 const kinds=['Ciclo','Microciclo'];
-const methods=['Teoria','Questões','Lei seca','Revisão','Flashcards','Caderno de erros','Simulado'];
+const methods=['Teoria','Questões','Lei seca','Revisão','Anki','Flashcards','Caderno de erros','Simulado'];
 function opts(values){return values.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');}
 async function draw(root){
   const [data,curriculum]=await Promise.all([api('study-cycles'),api('curriculum')]);

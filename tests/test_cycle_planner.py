@@ -93,4 +93,11 @@ class CyclePlannerTests(unittest.TestCase):
             cycle_planner.move_segment(self.c,seg,2)
         self.assertFalse(cycle_planner.move_segment(self.c,seg,-1)['changed'])
 
+    def test_anki_method_supported(self):
+        cid=cycle_planner.create(self.c,'Ciclo com Anki','Ciclo')['id']
+        seg=cycle_planner.add_segment(self.c,cid,'Direito Tributário','CTN','Anki',2)['id']
+        cycle=cycle_planner.read(self.c)['cycles'][0]
+        self.assertEqual(cycle['segments'][0]['method'],'Anki')
+        self.assertIn('Anki',cycle_planner.METHODS)
+
 if __name__=='__main__':unittest.main()

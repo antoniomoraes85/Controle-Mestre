@@ -47,7 +47,7 @@ DEFAULT_SUBJECTS = [
 ]
 DAY_CAPS = {'Plantão':120, 'Pós-plantão':90, 'Livre forte':360, 'Livre leve':180,
             'Mestrado':90, 'Aula particular':150, 'Reset':0}
-METHODS = ['Teoria','Questões','Lei seca','Revisão','Flashcards','Caderno de erros','Simulado','Aula particular']
+METHODS = ['Teoria','Questões','Lei seca','Revisão','Flashcards','Anki','Caderno de erros','Simulado','Aula particular']
 REVIEW_DELAYS = (1,7,15,30)
 
 def norm(s):
