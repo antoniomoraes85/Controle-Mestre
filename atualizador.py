@@ -182,7 +182,7 @@ def validate_release_manifest(manifest: dict) -> tuple[str, str]:
     expected_url = f"https://api.github.com/repos/{DEFAULT_REPO}/zipball/{revision}"
     if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("Manifesto oficial sem SHA completo e válido.")
-    if not isinstance(version, str) or not re.fullmatch(r"\\d+\\.\\d+\\.\\d+", version):
+    if not isinstance(version, str) or not re.fullmatch(r"\d+\.\d+\.\d+", version):
         raise ValueError("Versão do manifesto inválida.")
     if manifest.get("status") != "consolidada" or manifest.get("archive_url") != expected_url:
         raise ValueError("Manifesto não consolidado ou URL não corresponde ao commit fixado.")
@@ -328,11 +328,19 @@ def setup_desktop_folder(paths: dict[str, Path], interpreter: str = sys.executab
     # 1. Copiar atualizador autônomo para %LOCALAPPDATA%\ControleMestre\atualizador\atualizador.py
     this_file = Path(__file__).resolve()
     target_updater = updater_dir / "atualizador.py"
-    try:
-        if this_file != target_updater:
-            shutil.copy2(this_file, target_updater)
-    except OSError:
-        pass
+    # Atualizar também o próprio motor permanente ao concluir novo release.
+    # O atualizador antigo não deve sobrescrever o novo a cada execução.
+    source_updater = app / "atualizador.py"
+    if not source_updater.is_file():
+        source_updater = this_file
+    if source_updater.resolve() != target_updater.resolve():
+        staging_updater = target_updater.with_name(
+            "atualizador.py.novo_" + uuid.uuid4().hex[:10])
+        try:
+            shutil.copy2(source_updater, staging_updater)
+            staging_updater.replace(target_updater)
+        finally:
+            staging_updater.unlink(missing_ok=True)
 
     # 2. Criar ABRIR_CONTROLE_MESTRE.bat na pasta da Área de Trabalho
     bat_abrir = desktop_cm / "ABRIR_CONTROLE_MESTRE.bat"
