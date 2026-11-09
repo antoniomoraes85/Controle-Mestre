@@ -35,9 +35,9 @@ class MaterialAutolinkTests(unittest.TestCase):
   self.insert('@externo/Cursos/curso-355031-aula-02-completo.pdf',
               subject='Contabilidade Geral',topic='Tema 2',lesson='Aula 02')
   self.insert('@externo/Cursos/curso-355031-aula-03-completo.pdf')
-  with patch.object(material_autolink,'lessons',return_value=[]), \\
+  with (patch.object(material_autolink,'lessons',return_value=[]),
        patch.object(material_autolink,'read_first_pages',
-                    return_value='BIZU ESTRATÉGICO DE AUDITORIA CONTÁBIL – SEFAZ-RS'):
+                    return_value='BIZU ESTRATÉGICO DE AUDITORIA CONTÁBIL – SEFAZ-RS')):
    result=material_autolink.infer(self.c)
   self.assertEqual(result['subjects_assigned'],1)
   row=self.c.execute("SELECT subject,topic,material_type FROM study_materials WHERE lesson='Aula 03'").fetchone()
