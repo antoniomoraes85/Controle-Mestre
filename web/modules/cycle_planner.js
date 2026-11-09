@@ -29,6 +29,29 @@ async function draw(root){
        <button class="btn primary" type="submit">Criar e salvar</button>
     </form></details>
    ${!data.cycles.length?'<p class="subtitle" style="margin-top:14px">Nenhum ciclo criado ainda. Clique acima para começar.</p>':''}
+   <details class="cm-priority-box">
+     <summary class="btn small">★ Sugestões de assuntos prioritários (1–10)</summary>
+     <p class="cm-cycle-warning">Sugestões calculadas somente com dados registrados.
+       Nenhuma etapa é adicionada automaticamente. Escolha um ciclo antes de incluir.</p>
+     <label class="cm-priority-cycle-label">Adicionar ao ciclo:
+        <select id="cm-priority-cycle"><option value="">Escolha um ciclo</option>
+          ${data.cycles.filter(x=>x.kind==='Ciclo').map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select>
+     </label>
+     <div class="cm-priority-cards">
+       ${(curriculum.priority_suggestions||[]).slice(0,15).map(x=>`
+       <article class="cm-priority-card"><strong>${esc(x.subject)}</strong>
+        <p>${esc(x.topic)}</p>
+        <span class="cm-priority-level">Prioridade sugerida: ${x.priority_suggestion}/10</span>
+        <small>${esc(x.priority_confidence)} · ${esc(x.suggested_method||'Revisão')}</small>
+        <details><summary>Como foi calculada?</summary><small>${esc(x.priority_reason)}</small></details>
+        <button type="button" class="btn small" data-suggest-subject="${esc(x.subject)}"
+          data-suggest-topic="${esc(x.topic)}" data-suggest-method="${esc(x.suggested_method||'Revisão')}">
+          + Incluir no ciclo selecionado</button>
+       </article>`).join('')}
+       ${!(curriculum.priority_suggestions||[]).length?
+          '<p class="subtitle">Ainda não há dados suficientes para calcular prioridades. Cadastre incidências com fonte, questões ou progresso de estudo.</p>':''}
+     </div>
+   </details>
    <div class="cm-cycle-grid">
    ${data.cycles.map(c=>`<article class="cm-cycle-card"><h3>${esc(c.title)}</h3>
      <div class="cm-bank-top"><small>${esc(c.kind)} · rodada ${c.round_number} ·
@@ -107,6 +130,18 @@ export async function renderCyclePlanner(root){
   });
   root.addEventListener('click',async event=>{
     const cmd=event.target.closest('button');
+    if(cmd?.dataset.suggestTopic){
+      const cycleId=Number(root.querySelector('#cm-priority-cycle')?.value||0);
+      if(!cycleId){alert('Selecione o ciclo principal para receber este assunto.');return;}
+      if(!confirm('Incluir '+cmd.dataset.suggestSubject+' — '+cmd.dataset.suggestTopic+
+         ' no ciclo escolhido, com um bloco planejado de 30 minutos?'))return;
+      try{
+        await api('study-cycles/item',{cycle_id:cycleId,subject:cmd.dataset.suggestSubject,
+          topic:cmd.dataset.suggestTopic,method:cmd.dataset.suggestMethod,blocks:1});
+        await draw(root);
+      }catch(err){alert('Não foi possível incluir o assunto: '+err.message);}
+      return;
+    }
     if(cmd?.dataset.cycleEdit){
       const form=root.querySelector('.cm-cycle-edit[data-segment="'+cmd.dataset.cycleEdit+'"]');
       if(form)form.hidden=!form.hidden;
