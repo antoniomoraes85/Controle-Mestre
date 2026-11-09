@@ -28,7 +28,7 @@ import uuid
 import zipfile
 
 REPO = "antoniomoraes85/Controle-Mestre"
-REVISION = "7855939bf11ed8ec266b4c515688491dcf5ffb75"
+REVISION = "ac96296a204c33a79f6a1f56ae75f33b45b1c00a"
 DEFAULT_BRANCH = "feat/prioridade-inteligente-catalogo-v088"
 ARCHIVE_URL = f"https://api.github.com/repos/{REPO}/zipball/{REVISION}"
 
