@@ -36,7 +36,7 @@ async function draw(root){
                </div><div class="cm-curr-subj-progress">${progress(g.progress_pct)}
                 <b>${pc(g.progress_pct)}</b></div></summary>
               ${g.topic_count? `<div class="table-wrap"><table class="act-table cm-curr-table">
-                <thead><tr><th>Aula</th><th>Assunto</th><th>Importância (1–5)</th><th>Incidência e fonte</th>
+                <thead><tr><th>Aula</th><th>Assunto</th><th>Prioridade (1–10)</th><th>Incidência e fonte</th>
                   <th>Progresso</th><th>Questões / rendimento</th><th>Material</th><th>Ação</th></tr></thead>
                 <tbody>${g.topics.map(t=>`<tr>
                   <td class="cm-curr-lesson">${h(t.lesson||'—')}</td>
@@ -44,9 +44,13 @@ async function draw(root){
                       <small class="cm-curr-origin">${h(t.origins.join(' · '))}</small></td>
                   <td><button class="cm-inc-level" type="button"
                     data-level="${t.importance_level||''}" data-importance-subject="${h(t.subject)}"
-                    data-importance-topic="${h(t.topic)}" title="${h(t.importance_basis)}">
-                    ${t.importance_level?'Nível '+t.importance_level:'Classificar'}</button>
-                    <small class="cm-curr-origin">${h(t.importance_basis)}</small></td>
+                    data-importance-topic="${h(t.topic)}" data-priority-reason="${h(t.priority_reason)}"
+                    title="${h(t.priority_reason)}">
+                    ${t.importance_level?'Prioridade '+t.importance_level+'/10':'Não calculada'}</button>
+                    <small class="cm-curr-origin">${h(t.importance_basis)}</small>
+                    ${t.importance_manual && t.priority_suggestion!=null?
+                        `<small class="cm-curr-origin">Sugestão automática: ${t.priority_suggestion}/10</small>`:''}
+                    </td>
                   <td>${pill(t.incidence_pct)}
                      <small class="cm-curr-origin" title="${h(t.incidence_source)}">${h(t.incidence_source||'Sem percentual documentado')}</small></td>
                   <td>${progress(t.progress)}
@@ -82,10 +86,10 @@ export async function renderCurriculum(root,options={}){
       try{
         if(btn.dataset.importanceTopic){
           const initial=btn.dataset.level||'';
-          const txt=prompt('Nível de importância do assunto (1–5). Este valor será sua classificação pessoal, não uma incidência oficial:',initial);
+          const txt=prompt('Prioridade pessoal do assunto (1–10). A sugestão automática não altera sua escolha:',initial);
           if(txt===null)return;
           const value=Number(txt);
-          if(!Number.isInteger(value)||value<1||value>5){alert('Informe um nível inteiro de 1 a 5.');return;}
+          if(!Number.isInteger(value)||value<1||value>10){alert('Informe uma prioridade inteira de 1 a 10.');return;}
           await api('curriculum/importance',{subject:btn.dataset.importanceSubject,
             topic:btn.dataset.importanceTopic,level:value});
           await draw(root);return;
