@@ -12,6 +12,7 @@ from sources import prepare as prepare_sources
 from bizu_seed import rows as bizu_rows
 from topic_importance import read_details as importance_read_details
 from curriculum_evidence import read_verified as evidence_read_verified
+from curriculum_topic_links import read_verified as topic_links_read_verified
 from priority_engine import score as priority_score
 
 def report(c):
@@ -56,7 +57,7 @@ def report(c):
         entry=result.setdefault(k,{'subject':subject,'topic':topic,
             'lesson':'','status':'Não iniciado','progress':0,
             'incidence_pct':None,'incidence_source':'',
-            'pdfs':[],'origins':[],'guide_id':None,'entry_id':None,'total_questions':0,'correct_questions':0})
+            'pdfs':[],'subtopics':[],'origins':[],'guide_id':None,'entry_id':None,'total_questions':0,'correct_questions':0})
         if source not in entry['origins']:entry['origins'].append(source)
         if entry['incidence_pct'] is None:
             historical_row=documented_incidence(subject,topic)
@@ -90,6 +91,21 @@ def report(c):
         e=add(row['disciplina'],row['assunto'],'Catálogo de aulas',lesson=row['aula'])
         if e:by_lesson[(norm(row['disciplina']),norm(row['aula']))].append(e)
     stats['catalog']=len(catalog)
+    # Vínculos n:m confirmados a partir dos PDFs locais: uma aula pode conter
+    # muitos assuntos e um assunto pode estar em diversas aulas.
+    approved_links=topic_links_read_verified(c)
+    linked_ids=set()
+    for link in approved_links:
+        entry=add(link['subject'],link['topic'],'Sumário de PDF confirmado',
+                  lesson=link['lesson'])
+        if not entry:continue
+        if link['subtopic'] and link['subtopic'] not in entry['subtopics']:
+            entry['subtopics'].append(link['subtopic'])
+        if link['material_id'] not in {x['id'] for x in entry['pdfs']}:
+            entry['pdfs'].append({'id':link['material_id'],'name':link['file_name'],
+                                 'type':link['material_type']})
+        linked_ids.add(link['material_id'])
+    stats['pdf_topic_links']=len(approved_links)
     # Prioridade histórica da tabela topics NÃO é percentual; não reinterpretar.
     from_topics=all_rows(c,'SELECT subject,topic,lesson,progress FROM topics')
     for row in from_topics:
@@ -112,8 +128,9 @@ def report(c):
             possible=by_lesson.get((norm(pdf['subject']),norm(pdf['lesson'])),[])
             if len(possible)==1:e=possible[0]
         doc={'id':pdf['id'],'name':pdf['file_name'],'type':pdf['material_type']}
-        if e:e['pdfs'].append(doc)
-        else:unlinked.append({'id':pdf['id'],'subject':pdf['subject'],
+        if e:
+            if pdf['id'] not in {x['id'] for x in e['pdfs']}:e['pdfs'].append(doc)
+        elif pdf['id'] not in linked_ids:unlinked.append({'id':pdf['id'],'subject':pdf['subject'],
                               'lesson':pdf['lesson'],'file_name':pdf['file_name']})
     stats['pdfs']=len(pdfs)
     # Desempenho real apenas por assunto com nome exatamente normalizado.
