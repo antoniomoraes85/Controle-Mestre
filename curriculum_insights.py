@@ -5,7 +5,7 @@ e PDFs catalogados. NÃO é o novo edital oficial e não inventa incidências.
 """
 from __future__ import annotations
 from collections import defaultdict
-from core import all_rows,norm
+from core import all_rows,norm,DEFAULT_SUBJECTS
 from lesson_catalog import lessons as catalog_lessons
 from study_guide import prepare as prepare_guide
 from sources import prepare as prepare_sources
@@ -118,7 +118,10 @@ def report(c):
                               if row['total_questions'] else None)
         grouped[row['subject']].append(row)
     subjects=[]
-    for subject,items in sorted(grouped.items()):
+    ordered=[x[0] for x in DEFAULT_SUBJECTS]
+    ordered.extend(sorted(set(grouped)-set(ordered)))
+    for subject in ordered:
+        items=grouped.get(subject,[])
         items.sort(key=lambda x:(x['lesson'],x['topic']))
         completed=sum(x['progress'] for x in items)/len(items) if items else 0
         total_questions=sum(x['total_questions'] for x in items)
