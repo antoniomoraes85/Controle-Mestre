@@ -151,6 +151,24 @@ class AtualizadorTests(unittest.TestCase):
         self.assertTrue((self.desktop_cm / "ATUALIZAR_CONTROLE_MESTRE.bat").is_file())
         self.assertTrue((self.desktop_cm / "INSTRUCOES_DE_UTILIZACAO.txt").is_file())
 
+    def test_update_self_updater(self):
+        updater_dir = self.paths["updater"]
+        updater_dir.mkdir(parents=True, exist_ok=True)
+        target = updater_dir / "atualizador.py"
+        target.write_text("# Versao antiga v1.0", encoding="utf-8")
+
+        new_updater = self.app / "atualizador.py"
+        new_updater.write_text("# Versao nova v1.1 com melhorias", encoding="utf-8")
+
+        # Chama a auto-atualização do atualizador
+        updated = atualizador.update_self_updater(self.paths, source_updater_path=new_updater)
+        self.assertTrue(updated)
+        self.assertEqual(target.read_text(encoding="utf-8"), "# Versao nova v1.1 com melhorias")
+
+        # Se chamar de novo com mesmo conteúdo, não deve re-copiar desnecessariamente
+        updated_again = atualizador.update_self_updater(self.paths, source_updater_path=new_updater)
+        self.assertFalse(updated_again)
+
 
 if __name__ == "__main__":
     unittest.main()

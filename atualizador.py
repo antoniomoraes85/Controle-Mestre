@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from contextlib import closing
 from datetime import datetime
+import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -27,6 +28,7 @@ import zipfile
 
 DEFAULT_REPO = "antoniomoraes85/Controle-Mestre"
 DEFAULT_BRANCH = "feat/usabilidade-catalogo-ciclos-v086"
+UPDATER_VERSION = "1.1.0"
 OFFICIAL_MANIFEST_URL = (
     f"https://raw.githubusercontent.com/{DEFAULT_REPO}/{DEFAULT_BRANCH}/versao_oficial.json"
 )
@@ -317,6 +319,58 @@ def write_text_utf8(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8", newline="\r\n")
 
 
+def update_self_updater(paths: dict[str, Path], source_updater_path: Path | None = None) -> bool:
+    """Atualiza o próprio script do atualizador em %LOCALAPPDATA%\\ControleMestre\\atualizador\\atualizador.py.
+
+    Verifica se o arquivo fonte é diferente do arquivo de destino via hash SHA-256.
+    Se for diferente, faz substituição atômica no ambiente Windows.
+    """
+    updater_dir = paths["updater"]
+    updater_dir.mkdir(parents=True, exist_ok=True)
+    target_updater = updater_dir / "atualizador.py"
+
+    if source_updater_path is None:
+        candidate_app = paths["app"] / "atualizador.py"
+        if candidate_app.is_file() and candidate_app.resolve() != target_updater.resolve():
+            source_updater_path = candidate_app
+        else:
+            source_updater_path = Path(__file__).resolve()
+
+    if not source_updater_path.is_file():
+        return False
+
+    if source_updater_path.resolve() == target_updater.resolve():
+        return False
+
+    def file_hash(p: Path) -> str:
+        h = hashlib.sha256()
+        with p.open("rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    try:
+        new_hash = file_hash(source_updater_path)
+        if target_updater.is_file():
+            current_hash = file_hash(target_updater)
+            if new_hash == current_hash:
+                return False
+
+        staging = updater_dir / f"atualizador.py.tmp_{uuid.uuid4().hex[:6]}"
+        shutil.copy2(source_updater_path, staging)
+        try:
+            staging.replace(target_updater)
+        except OSError:
+            shutil.copy2(staging, target_updater)
+        finally:
+            staging.unlink(missing_ok=True)
+        print("      O próprio Atualizador foi atualizado com sucesso para a versão mais recente.")
+        return True
+    except OSError as exc:
+        print(f"      Aviso: não foi possível atualizar o script do atualizador: {exc}")
+        return False
+
+
 def setup_desktop_folder(paths: dict[str, Path], interpreter: str = sys.executable) -> None:
     desktop_cm = paths["desktop_cm"]
     desktop_cm.mkdir(parents=True, exist_ok=True)
@@ -333,16 +387,18 @@ def setup_desktop_folder(paths: dict[str, Path], interpreter: str = sys.executab
     source_updater = app / "atualizador.py"
     if not source_updater.is_file():
         source_updater = this_file
-    if source_updater.resolve() != target_updater.resolve():
+    if source_updater.is_file() and source_updater.resolve() != target_updater.resolve():
         staging_updater = target_updater.with_name(
             "atualizador.py.novo_" + uuid.uuid4().hex[:10])
         try:
             shutil.copy2(source_updater, staging_updater)
             staging_updater.replace(target_updater)
+        except OSError:
+            pass
         finally:
             staging_updater.unlink(missing_ok=True)
 
-    # 2. Criar ABRIR_CONTROLE_MESTRE.bat na pasta da Área de Trabalho
+    # 2. Criar ABRIR_CONTROLE_MESTRE.bat resiliente na pasta da Área de Trabalho
     bat_abrir = desktop_cm / "ABRIR_CONTROLE_MESTRE.bat"
     bat_abrir_content = (
         "@echo off\r\n"
@@ -351,7 +407,18 @@ def setup_desktop_folder(paths: dict[str, Path], interpreter: str = sys.executab
         "title CONTROLE MESTRE - Estudos e Historico\r\n"
         "set \"CONTROLE_MESTRE_DB=%LOCALAPPDATA%\\ControleMestre\\dados\\controle_mestre.db\"\r\n"
         "cd /d \"%LOCALAPPDATA%\\ControleMestre\\app\"\r\n"
+        "py -3 -c \"import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)\" >nul 2>&1\r\n"
+        "if not errorlevel 1 (\r\n"
+        "    py -3 -u launch.py\r\n"
+        "    goto FIM_ABRIR\r\n"
+        ")\r\n"
+        "python -c \"import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)\" >nul 2>&1\r\n"
+        "if not errorlevel 1 (\r\n"
+        "    python -u launch.py\r\n"
+        "    goto FIM_ABRIR\r\n"
+        ")\r\n"
         f"\"{interpreter}\" -u launch.py\r\n"
+        ":FIM_ABRIR\r\n"
         "if errorlevel 1 (\r\n"
         "  echo.\r\n"
         "  echo Nao foi possivel abrir o CONTROLE MESTRE. Verifique a mensagem acima.\r\n"
@@ -359,11 +426,9 @@ def setup_desktop_folder(paths: dict[str, Path], interpreter: str = sys.executab
         ")\r\n"
     )
     write_text_utf8(bat_abrir, bat_abrir_content)
-
-    # Cópia também em %LOCALAPPDATA%\ControleMestre\ABRIR_CONTROLE_MESTRE.bat
     write_text_utf8(root / "ABRIR_CONTROLE_MESTRE.bat", bat_abrir_content)
 
-    # 3. Criar ATUALIZAR_CONTROLE_MESTRE.bat na pasta da Área de Trabalho
+    # 3. Criar ATUALIZAR_CONTROLE_MESTRE.bat resiliente na pasta da Área de Trabalho
     bat_atualizar = desktop_cm / "ATUALIZAR_CONTROLE_MESTRE.bat"
     bat_atualizar_content = (
         "@echo off\r\n"
@@ -374,7 +439,18 @@ def setup_desktop_folder(paths: dict[str, Path], interpreter: str = sys.executab
         "echo CONTROLE MESTRE - Atualizacao Oficial e Segura\r\n"
         "echo ============================================================\r\n"
         "echo.\r\n"
+        "py -3 -c \"import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)\" >nul 2>&1\r\n"
+        "if not errorlevel 1 (\r\n"
+        "    py -3 -u \"%LOCALAPPDATA%\\ControleMestre\\atualizador\\atualizador.py\"\r\n"
+        "    goto FIM_ATUALIZAR\r\n"
+        ")\r\n"
+        "python -c \"import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)\" >nul 2>&1\r\n"
+        "if not errorlevel 1 (\r\n"
+        "    python -u \"%LOCALAPPDATA%\\ControleMestre\\atualizador\\atualizador.py\"\r\n"
+        "    goto FIM_ATUALIZAR\r\n"
+        ")\r\n"
         f"\"{interpreter}\" -u \"%LOCALAPPDATA%\\ControleMestre\\atualizador\\atualizador.py\"\r\n"
+        ":FIM_ATUALIZAR\r\n"
         "if errorlevel 1 (\r\n"
         "  echo.\r\n"
         "  echo A atualizacao encontrou um problema. O historico e o app foram preservados.\r\n"
@@ -596,6 +672,9 @@ def perform_update(
                 "status": "instalada",
             }
             write_text_utf8(app_dir / "versao_instalada.json", json.dumps(record, indent=2))
+
+            # Atualizar o próprio atualizador em %LOCALAPPDATA%\ControleMestre\atualizador
+            update_self_updater(paths, source_updater_path=app_dir / "atualizador.py")
 
             # Validar diagnóstico
             print("\n[6/6] Validando integridade da instalação no ambiente Windows...")

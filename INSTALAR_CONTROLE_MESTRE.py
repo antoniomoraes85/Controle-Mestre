@@ -225,7 +225,7 @@ def setup_workspace(base: Path, interpreter: str = sys.executable) -> tuple[Path
     desktop_cm = desktop / "CONTROLE MESTRE"
     desktop_cm.mkdir(parents=True, exist_ok=True)
 
-    # 1. Launcher ABRIR
+    # 1. Launcher ABRIR resiliente
     bat_abrir = desktop_cm / "ABRIR_CONTROLE_MESTRE.bat"
     bat_abrir_text = (
         "@echo off\r\n"
@@ -234,7 +234,18 @@ def setup_workspace(base: Path, interpreter: str = sys.executable) -> tuple[Path
         "title CONTROLE MESTRE - Estudos e Historico\r\n"
         "set \"CONTROLE_MESTRE_DB=%LOCALAPPDATA%\\ControleMestre\\dados\\controle_mestre.db\"\r\n"
         "cd /d \"%LOCALAPPDATA%\\ControleMestre\\app\"\r\n"
+        "py -3 -c \"import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)\" >nul 2>&1\r\n"
+        "if not errorlevel 1 (\r\n"
+        "    py -3 -u launch.py\r\n"
+        "    goto FIM_ABRIR\r\n"
+        ")\r\n"
+        "python -c \"import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)\" >nul 2>&1\r\n"
+        "if not errorlevel 1 (\r\n"
+        "    python -u launch.py\r\n"
+        "    goto FIM_ABRIR\r\n"
+        ")\r\n"
         f"\"{interpreter}\" -u launch.py\r\n"
+        ":FIM_ABRIR\r\n"
         "if errorlevel 1 (\r\n"
         "  echo.\r\n"
         "  echo Nao foi possivel abrir o CONTROLE MESTRE. Verifique o erro acima.\r\n"
@@ -244,7 +255,7 @@ def setup_workspace(base: Path, interpreter: str = sys.executable) -> tuple[Path
     write_text_utf8(bat_abrir, bat_abrir_text)
     write_text_utf8(base / "ABRIR_CONTROLE_MESTRE.bat", bat_abrir_text)
 
-    # 2. Launcher ATUALIZAR
+    # 2. Launcher ATUALIZAR resiliente
     bat_atualizar = desktop_cm / "ATUALIZAR_CONTROLE_MESTRE.bat"
     bat_atualizar_text = (
         "@echo off\r\n"
@@ -255,7 +266,18 @@ def setup_workspace(base: Path, interpreter: str = sys.executable) -> tuple[Path
         "echo CONTROLE MESTRE - Atualizador Universal\r\n"
         "echo ============================================================\r\n"
         "echo.\r\n"
+        "py -3 -c \"import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)\" >nul 2>&1\r\n"
+        "if not errorlevel 1 (\r\n"
+        "    py -3 -u \"%LOCALAPPDATA%\\ControleMestre\\atualizador\\atualizador.py\"\r\n"
+        "    goto FIM_ATUALIZAR\r\n"
+        ")\r\n"
+        "python -c \"import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)\" >nul 2>&1\r\n"
+        "if not errorlevel 1 (\r\n"
+        "    python -u \"%LOCALAPPDATA%\\ControleMestre\\atualizador\\atualizador.py\"\r\n"
+        "    goto FIM_ATUALIZAR\r\n"
+        ")\r\n"
         f"\"{interpreter}\" -u \"%LOCALAPPDATA%\\ControleMestre\\atualizador\\atualizador.py\"\r\n"
+        ":FIM_ATUALIZAR\r\n"
         "if errorlevel 1 (\r\n"
         "  echo.\r\n"
         "  echo A atualizacao falhou. Seu app e dados foram mantidos intactos.\r\n"
