@@ -7,6 +7,7 @@ on:
       - feat/guia-edital-anki-diagnostico-v083
       - feat/provas-bancas-materiais-brand-v084
       - feat/catalogo-edital-imagens-v085
+      - feat/usabilidade-catalogo-ciclos-v086
   pull_request:
     branches:
       - feat/cronogramas-identidade-v07
@@ -43,3 +44,4 @@ jobs:
           node --check web/modules/question_bank.js
           node --check web/modules/sources.js
           node --check web/modules/curriculum.js
+          node --check web/modules/cycle_planner.js
