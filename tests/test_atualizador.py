@@ -40,6 +40,22 @@ class AtualizadorTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
+    def test_manifesto_rejeita_branch_movel(self):
+        manifesto = json.loads((Path(__file__).resolve().parents[1] /
+                                "versao_oficial.json").read_text(encoding="utf-8"))
+        self.assertEqual(atualizador.validate_release_manifest(manifesto)[0], "0.8.6")
+        instavel = dict(manifesto, archive_url=(
+            "https://api.github.com/repos/antoniomoraes85/Controle-Mestre/"
+            "zipball/feat/usabilidade-catalogo-ciclos-v086"))
+        with self.assertRaises(ValueError):
+            atualizador.validate_release_manifest(instavel)
+
+    def test_manifesto_rejeita_sha_inexistente_sintaticamente(self):
+        manifesto = json.loads((Path(__file__).resolve().parents[1] /
+                                "versao_oficial.json").read_text(encoding="utf-8"))
+        with self.assertRaises(ValueError):
+            atualizador.validate_release_manifest(dict(manifesto, revisao="nao-e-sha"))
+
     def test_revisao_inicial_coincide_com_manifesto_oficial(self):
         """Evita instalar ZIP de um commit inexistente ou obsoleto."""
         path = Path(__file__).resolve().parents[1] / "versao_oficial.json"
