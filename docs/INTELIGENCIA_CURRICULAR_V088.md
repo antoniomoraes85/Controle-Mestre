@@ -51,3 +51,31 @@ O JSON é apenas exemplo de **formato**, sem representar dado factual extraído.
 
 ## Limites
 A leitura dos PDFs do proprietário requer Antigravity local; até essa etapa, nem todos os assuntos estarão classificados. Ausência de percentual não é zero. A pontuação calculada não equivale à previsão de questões da próxima prova.
+
+## Importação de sumários com múltiplos assuntos
+
+Para cada PDF já catalogado na tabela `study_materials`, o agente local poderá construir **uma linha por assunto/subassunto**. A relação é muitos-para-muitos e não altera o campo antigo `study_materials.topic`.
+
+Exemplo estrutural, **sem representar PDF efetivamente lido**:
+
+```json
+{"topic_links": [
+  {"material_id":123, "subject":"Direito Tributário",
+   "topic":"Obrigação tributária", "subtopic":"Sujeito passivo",
+   "lesson":"Aula 03", "page_from":5,"page_to":8,
+   "excerpt":"Sujeito passivo da obrigação tributária"},
+  {"material_id":123, "subject":"Direito Tributário",
+   "topic":"Crédito tributário", "subtopic":"Lançamento",
+   "lesson":"Aula 03", "page_from":18,"page_to":24,
+   "excerpt":"Lançamento tributário"}
+]}
+```
+
+**Passos locais:**
+1. Localizar ID de cada PDF na biblioteca do CONTROLE MESTRE e conferir o nome/caminho original.
+2. Executar **simulação**: `py -3 local_curriculum_topics.py "C:\\CAMINHO\\assuntos_locais.json"`.
+3. Persistir como **pendente**: `py -3 local_curriculum_topics.py "C:\\CAMINHO\\assuntos_locais.json" --apply`.
+4. Após confirmar páginas e trechos com o próprio PDF: `py -3 local_curriculum_topics.py "C:\\CAMINHO\\assuntos_locais.json" --apply --approve`.
+5. Conferir a tela de Disciplinas e Guia: cada assunto aparece com subassunto e botão do mesmo PDF. O importador preserva o histórico e cria backup antes de gravar.
+
+Os caminhos e dados privados ficam **somente** no computador. Se a disciplina presente no banco divergir daquela proposta no JSON, o importador bloqueia o vínculo para revisão, em vez de sobrescrever.
