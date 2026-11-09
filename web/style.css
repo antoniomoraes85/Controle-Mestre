@@ -391,3 +391,54 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .cm-cycle-warning{margin-top:8px;color:#b6c6d2;font-size:11px}
 @media(max-width:930px){.cm-subject-grid,.cm-cycle-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.sidebar{height:100dvh;min-height:100dvh}.cm-banner-loaded .cm-hero-copy{padding:10px}}
+
+/* v0.8.7 — planejamento no mesmo fluxo, semana fixa ou ciclo por sequência */
+.cm-plan-modes{display:flex;align-items:center;justify-content:space-between;gap:22px;
+  padding:23px;margin:12px 0 22px;border:1px solid #79642e;border-radius:16px;
+  background:linear-gradient(110deg,#1b2029,#22242b 75%,#2e2614);
+  box-shadow:0 10px 25px #0003}
+.cm-plan-modes strong{display:block;font-size:16px;color:#ffe39c}
+.cm-plan-modes p{margin:7px 0 0;color:#b8c7d6;line-height:1.65;font-size:12px}
+.cm-plan-toggle{display:flex;gap:7px;flex-wrap:wrap}
+.cm-mode-option{min-width:150px;padding:13px 15px;white-space:nowrap;
+  border-radius:10px;font-size:12px;font-weight:800;background:#292f3b;
+  border:1px solid #4f5866;color:#e3e9f1}
+.cm-mode-option.is-active,.cm-mode-option[aria-pressed="true"]{
+  border-color:#ffd447;background:#d9b72c;color:#15161b;
+  box-shadow:0 4px 17px #c69c2945}
+.cm-mode-option:focus-visible{outline:3px solid #f4d777;outline-offset:3px}
+#cm-plan-weekly[hidden],#cm-plan-cyclic[hidden],.cm-cycle-edit[hidden]{display:none!important}
+.cm-week-heading{display:flex;justify-content:flex-end;margin:5px 0 16px}
+#cm-plan-cyclic{padding-top:4px}
+.cm-cycle-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cm-cycle-card{border-top:3px solid #d2ab35;box-shadow:0 10px 20px #0003}
+.cm-cycle-card>h3{font-size:18px;line-height:1.35}
+.cm-cycle-item{align-items:flex-start}
+.cm-cycle-segment{background:#1b232b;border:1px solid #364454;
+  border-radius:10px;margin:12px 0;overflow:hidden}
+.cm-cycle-segment:hover{border-color:#927d45}
+.cm-cycle-item{padding:14px}
+.cm-cycle-item-toolbar,.cm-cycle-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.cm-cycle-actions button{font-size:11px}
+.cm-cycle-edit{padding:14px;border-top:1px solid #3a4656;background:#242a34;
+  display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cm-cycle-edit>.cm-cycle-actions{grid-column:1/-1}
+.cm-cycle-edit label{color:#cdd9e3;display:block;font-size:12px}
+.cm-cycle-edit input,.cm-cycle-edit select{width:100%;margin-top:5px;color:#f4f6f8;
+  background:#161b23;border:1px solid #5a6473;padding:10px;border-radius:8px}
+.cm-cycle-edit button{margin-top:4px}
+.cm-cycle-blocks{align-content:center;max-width:240px}
+.cm-cycle-check{transition:background .12s,border .12s}
+.cm-cycle-card>details{margin-top:20px}
+.cm-cycle-card>details summary{cursor:pointer;display:inline-flex}
+.cm-cycle-item strong{font-size:13px}
+@media(max-width:900px){
+ .cm-plan-modes{flex-direction:column;align-items:stretch;padding:18px}
+ .cm-mode-option{flex:1}
+ .cm-cycle-grid{grid-template-columns:1fr}
+}
+@media(max-width:580px){
+ .cm-cycle-item{flex-direction:column}
+ .cm-cycle-edit{grid-template-columns:1fr}
+ .cm-plan-toggle{flex-direction:column}
+}
