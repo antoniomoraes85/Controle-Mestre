@@ -217,7 +217,10 @@ def scan_pdfs(c):
             # Não apagar históricos ou vínculos já registrados.
             c.execute("UPDATE study_materials SET status='Ausente' WHERE id=?",(row['id'],))
     c.commit()
+    from material_autolink import infer
+    auto=infer(c,apply=True)
     return {'scanned':found,'errors':errors[:30],
+            'auto_linked':auto,
             'roots':[{'kind':kind,'path':str(root)} for kind,root in roots(c)]}
 
 
