@@ -285,3 +285,65 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
  .cm-chess-motion .cm-pawn-piece{transform:translate(120px,275px)}
  .cm-chess-motion .cm-king-piece{transform:translate(455px,275px)}
 }
+
+/* v0.8.5 — imagens reais da marca com fallback SVG e parallax de profundidade */
+.brand-link{position:relative}
+.cm-brand-photo{display:none;object-fit:contain;width:100%;height:auto;max-height:85px}
+.brand-link.cm-brand-loaded{padding:8px 5px}
+.brand-link.cm-brand-loaded .cm-brand-photo{display:block}
+.brand-link.cm-brand-loaded .cm-simple-mark,.brand-link.cm-brand-loaded .cm-brand-type{display:none}
+.cm-hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  object-position:50% 50%;opacity:0;pointer-events:none;z-index:0;
+  transform:scale(1.045) translate(var(--parallax-x,0px),var(--parallax-y,0px));
+  transition:transform .35s ease-out, opacity .25s ease-in}
+.cm-new-hero.cm-banner-loaded{min-height:535px;padding:0;display:block;isolation:isolate}
+.cm-banner-loaded .cm-hero-photo{height:calc(100% - 76px);opacity:1;animation:cm-banner-atmosphere 11s ease-in-out infinite alternate}
+.cm-banner-loaded .cm-hero-copy{position:absolute;bottom:0;left:0;right:0;z-index:3;
+  background:linear-gradient(90deg,#08090ddf,#111319e0);border-top:1px solid #a87c2570;
+  padding:16px 23px;min-height:76px}
+.cm-banner-loaded .cm-hero-copy>.cm-hero-kicker,
+.cm-banner-loaded .cm-hero-copy>.cm-hero-title,
+.cm-banner-loaded .cm-hero-copy>.cm-hero-quote,
+.cm-banner-loaded .cm-hero-copy>.cm-hero-support{display:none}
+.cm-banner-loaded .cm-hero-art{display:none}
+.cm-banner-loaded .hero-actions{position:relative;display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.cm-curriculum-panel .panel-content{padding:16px}
+.cm-curr-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:15px}
+.cm-curr-summary>div{padding:15px;border:1px solid #353b46;background:#1e232d;border-radius:12px}
+.cm-curr-summary span{display:block;font-size:11px;color:#a9b5c7}
+.cm-curr-summary strong{display:block;margin-top:8px;font-size:23px;color:#f1cc54}
+.cm-curr-filter{display:flex;gap:14px;align-items:center;margin:16px 0;color:#dae3ed;font-weight:700}
+.cm-curr-filter select{min-width:260px;max-width:100%;color:#e8ecf3;background:#242933;
+  border:1px solid #4a5360;padding:10px;border-radius:8px}
+.cm-curr-subject{border:1px solid #3a404b;border-radius:12px;margin:12px 0;background:#171b22;overflow:hidden}
+.cm-curr-subject>summary{cursor:pointer;padding:14px 17px;display:flex;justify-content:space-between;
+  align-items:center;gap:10px;color:#e8ebf2}
+.cm-curr-subject>summary:hover{background:#272a32}
+.cm-curr-title{display:flex;flex-direction:column;gap:5px}
+.cm-curr-title strong{font-size:14px}
+.cm-curr-title span{color:#aeb8c6;font-size:11px}
+.cm-curr-subj-progress{min-width:158px;display:flex;align-items:center;gap:8px}
+.cm-curr-progress{height:7px;min-width:75px;flex:1;border-radius:6px;background:#343a43;overflow:hidden;margin:3px 0}
+.cm-curr-progress>span{display:block;height:100%;background:linear-gradient(90deg,#c79919,#ffe178);
+  border-radius:8px}
+.cm-curr-table{min-width:970px}
+.cm-curr-table td{vertical-align:middle}
+.cm-curr-table td:nth-child(2){min-width:215px;max-width:390px}
+.cm-curr-table td:nth-child(3){min-width:115px}
+.cm-curr-origin{display:block;color:#99a4b3;font-size:10px;line-height:1.5;margin-top:5px}
+.cm-inc-val{background:#5d451439;color:#f8d976;border:1px solid #8e6f29;padding:4px 8px;border-radius:9px;font-weight:800}
+.cm-inc-unknown{color:#8c99a9;font-size:11px}
+.cm-curr-file{display:inline-block;font-size:10px;color:#eac766;text-decoration:none;white-space:nowrap;margin:2px 0}
+.cm-curr-file:hover{text-decoration:underline}
+@keyframes cm-banner-atmosphere{0%{filter:brightness(.94) saturate(1)}100%{filter:brightness(1.07) saturate(1.04)}}
+@media(max-width:850px){
+ .cm-new-hero.cm-banner-loaded{min-height:420px}
+ .cm-curr-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .cm-curr-subject>summary{flex-direction:column;align-items:stretch}
+ .cm-banner-loaded .cm-hero-copy{padding:10px}
+ .cm-banner-loaded .hero-actions{gap:6px}
+}
+@media(prefers-reduced-motion:reduce){
+ .cm-hero-photo{transition:none!important;transform:none!important}
+ .cm-banner-loaded .cm-hero-photo{animation:none!important}
+}
