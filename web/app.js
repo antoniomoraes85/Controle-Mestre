@@ -14,6 +14,7 @@ import {createStudyTimer} from './modules/study_timer.js';
 import {renderAnkiAnalytics} from './modules/anki_analytics.js';
 import {renderAssessmentInsights, portugueseForm} from './modules/assessment_insights.js';
 import {renderQuestionBankPerformance} from './modules/question_bank.js';
+import {renderCurriculum} from './modules/curriculum.js';
 const $=(s,root=document)=>root.querySelector(s);
 const $$=(s,root=document)=>Array.from(root.querySelectorAll(s));
 const dayNames=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -33,6 +34,7 @@ function activitiesTable(rows,includeDate=false){if(!rows.length)return empty('N
 function chartSvg(series){if(!series.some(x=>x.minutes>0))return `<div class="chart">${empty('Sem histórico de horas','Seu gráfico aparecerá após você registrar as primeiras sessões.')}</div>`;const w=650,h=225,left=39,right=15,top=18,bottom=32;const max=Math.max(1,...series.map(x=>x.hours));const x=i=>left+(i*(w-left-right))/(series.length-1);const y=v=>h-bottom-(v/max)*(h-bottom-top);const pts=series.map((s,i)=>`${x(i).toFixed(1)},${y(s.hours).toFixed(1)}`).join(' ');const area=`M ${x(0)},${h-bottom} L ${pts.replace(/ /g,' L ')} L ${x(series.length-1)},${h-bottom} Z`;return `<div class="chart"><svg role="img" aria-label="Horas líquidas por semana" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet"><g>${[0,.5,1].map(r=>`<line x1="${left}" x2="${w-right}" y1="${y(max*r)}" y2="${y(max*r)}" class="light-line"/><text x="2" y="${y(max*r)+3}" class="chart-x">${fmt(max*r)}h</text>`).join('')}</g><path class="chart-fill" d="${area}"/><polyline class="chart-path" points="${pts}"/>${series.map((s,i)=>`<circle cx="${x(i)}" cy="${y(s.hours)}" r="3.2" fill="#FFD600"><title>${s.period}: ${fmt(s.hours)} horas</title></circle>${i%2===0?`<text class="chart-x" text-anchor="middle" x="${x(i)}" y="${h-9}">${s.period}</text>`:''}`).join('')}</svg></div>`}
 function goalPanel(d){const tasks=d.plans,done=d.done,total=tasks.length;const progress=total?100*done/total:0,met=d.metrics;const pctTime=met.weekly_target?100*met.weekly_minutes/met.weekly_target:0;const focus=d.focus_on||'Suas disciplinas prioritárias';return `<div class="hero-grid"><section class="panel"><div class="panel-head"><div><h2>◧ &nbsp;Meta atual</h2><p>Seu plano semanal de atividades</p></div><span class="goal-state">Semana ${shortDay(d.week_start)} — ${shortDay(d.week_end)}</span></div><div class="goal-body"><div class="goal-top"><span class="goal-sequence">PLANO PESSOAL • SEFAZ-RS</span><span class="tag ${tasks.length?'high':'warn'}">${tasks.length?'Em andamento':'Aguardando planejamento'}</span></div><h2>${tasks.length?`Sua meta desta semana`:'Sua próxima etapa começa aqui'}</h2><p class="goal-note">${tasks.length?`${total} atividades distribuídas conforme sua disponibilidade e prioridades.`:'Gere seu planejamento para visualizar atividades específicas em cada matéria.'}</p><div class="goal-progress-row"><strong>${done} de ${total} atividades concluídas</strong><small>${fmt(progress)}% da meta de atividades</small></div><div class="progress-rail"><div class="progress-fill" style="width:${Math.min(100,progress)}%"></div></div><div class="goal-bottom"><span><strong>${fmtHour(met.weekly_minutes)}</strong> de ${fmtHour(met.weekly_target)} de estudo</span><span>${fmt(pctTime)}% da meta de horas</span></div><div class="goal-footer">${actionBtn(tasks.length?'today':'plan',tasks.length?'Ver minhas atividades →':'Criar planejamento →','primary')}<span class="goal-faint">${tasks.length?'Meta recalculável sem apagar atividades concluídas.':'Planejamento inicial baseado em pesos, não em dados inventados.'}</span></div></div></section><section class="panel next-card"><div class="panel-head"><h2>✧ &nbsp;Direção estratégica</h2><span class="hint">RECOMENDAÇÃO</span></div><div class="next-inner"><span class="next-step">PRÓXIMO FOCO</span><h3>${escapeHTML(focus)}</h3><p>${d.ranking[0]?.questoes>=15?`Desempenho em ${d.ranking[0].questoes} questões: ${pct(d.ranking[0].rendimento)}. Priorize pontos fracos e revise erros.`:'Prioridade inicial calculada a partir dos pesos estratégicos. Registre questões para calibrar seu plano com evidências.'}</p>${actionBtn('insights','Ver diagnóstico inteligente →','primary')}</div></section></div>`}
 function heroBanner(d){const m=d.metrics;return `<section class="cm-new-hero" id="hero-banner" aria-label="Identidade e estratégia Controle Mestre">
+<img class="cm-hero-photo" src="/assets/branding/banner_v085.webp" alt="Peão realista prateado em colisão com rei dourado, com o slogan O poder não está na peça. Está na estratégia de quem a move.">
 <div class="cm-hero-copy">
   <span class="cm-hero-kicker">PLATAFORMA DE ESTUDOS • SEFAZ-RS</span>
   <h1 class="cm-hero-title"><span>CONTROLE</span> <strong>MESTRE</strong></h1>
@@ -100,7 +102,7 @@ function rankTable(rows){return `<div class="table-wrap"><table class="act-table
 function subjectsView(d){return `${heading('Disciplinas e conteúdos','Visão consolidada por assunto, incidência e lacunas de desempenho.')}<section class="panel"><div class="panel-head"><h2>Matriz de disciplinas</h2><span class="hint">${d.subjects.length} DISCIPLINAS</span></div>${rankTable(d.ranking)}</section><div class="info-box" style="margin-top:17px">Os pesos são configuráveis no Streamlit. A incidência histórica e o nível de domínio não são tratados como resultados de prova sem fonte verificável.</div>`}
 function cycleView(d){return `${heading('Ciclos de estudos','Organize sua sequência de disciplinas e acompanhe os registros de tempo.')}<div class="info-box">O motor atual já registra sessões associadas aos ciclos 1 a 10. A interface de marcadores de 30 minutos e fechamento de rodadas está prevista para uma versão posterior, com preservação do histórico.</div><section class="panel"><div class="panel-head"><h2>Tempo registrado por ciclo</h2></div><div class="panel-content">${d.cycles?.length?d.cycles.map(x=>`<div class="priority-item"><span class="rank">${x.cycle}</span><div class="grow"><b>${escapeHTML(x.subject)}</b><small>${fmtHour(x.minutes)} acumulados no ciclo</small></div></div>`).join(''):empty('Sem ciclos contabilizados','Associe a sessão de estudo a um ciclo pela interface de registro, disponível na versão Streamlit.')}</div></section>`}
 function guideView(d){return `${heading('Meu guia de estudos e incidências','Crie um guia próprio, acompanhe progresso e consulte as fontes dos percentuais históricos.')}
-<div id="study-guide-panel"></div>`}
+<div id="curriculum-report"></div><div id="study-guide-panel"></div>`}
 function questionsView(d){return `
   ${heading('Questões e caderno de erros','Registre resultados por bateria ou por questão, com causas detalhadas.')}
   <div id="question-registration"></div>
@@ -123,8 +125,41 @@ function questionsView(d){return `
 function reviewsView(d){return `${heading('Revisões e Anki','Acompanhe retenção de conteúdo e revisões pendentes sem duplicar horas.')}${ankiBridgeView(d,state.ankiLive)}<div id="anki-analytics-report"></div><div class="info-box" style="margin:16px 0">Os dados das antigas importações CSV do Anki são mantidos no banco separadamente. As métricas acima mostram respostas recentes obtidas diretamente do AnkiConnect. A fila de revisões abaixo pertence ao CONTROLE MESTRE e não deve ser confundida com cartões vencidos no Anki.</div><div class="metrics">${metric('Revisões internas vencidas',fmtInt(d.metrics.overdue_reviews),'Pendências da agenda do CONTROLE MESTRE','yellow','↻')}</div><section class="panel"><div class="panel-head"><h2>Fila de revisões</h2><span class="hint">PRÓXIMAS ${d.reviews.length}</span></div>${d.reviews.length?`<div class="table-wrap"><table class="act-table"><thead><tr><th>Disciplina</th><th>Assunto</th><th>Prazo</th><th>Status</th><th>Ação</th></tr></thead><tbody>${d.reviews.map(x=>`<tr><td>${escapeHTML(x.subject)}</td><td>${escapeHTML(x.topic||'—')}</td><td>${dateFmt(x.due_on)}</td><td><span class="tag ${x.due_on<d.today?'warn':'high'}">${x.due_on<d.today?'Vencida':'Pendente'}</span></td><td><button class="task-check" data-action="complete-review" data-id="${x.id}">✓</button></td></tr>`).join('')}</tbody></table></div>`:empty('Nenhuma revisão pendente','As sessões de teoria podem criar revisões automáticas D+1, D+7, D+15 e D+30.')}</section>`}
 function archiveView(d){return `${heading('Histórico de estudos','Registros efetivamente realizados e contabilizados no banco local.')}<section class="panel"><div class="panel-head"><h2>Últimas sessões registradas</h2><span class="hint">ÚLTIMOS 80 REGISTROS</span></div>${d.sessions.length?`<div class="table-wrap"><table class="act-table"><thead><tr><th>Disciplina</th><th>Assunto</th><th>Tipo</th><th>Data</th><th>Tempo líquido</th></tr></thead><tbody>${d.sessions.map(x=>`<tr><td>${escapeHTML(x.subject)}</td><td>${escapeHTML(x.topic||'—')}</td><td>${escapeHTML(x.method)}</td><td>${dateFmt(x.day)}</td><td>${fmtHour(x.minutes)}</td></tr>`).join('')}</tbody></table></div>`:empty('Ainda não existem sessões no histórico','Use o cronômetro do topo ou registre estudos manualmente.','open-session','Registrar sessão')}</section><p class="subtitle" style="margin-top:18px">O backup completo do banco e a importação Excel/Anki continuam disponíveis na versão Streamlit.</p>`}
 function settingsView(d){return `${heading('Configurações da preparação','Ajuste sua meta semanal sem alterar sessões ou questões registradas.')}<section class="panel"><div class="panel-head"><h2>Meta de horas líquidas</h2></div><div class="panel-content"><form id="settings-form"><div class="fields"><div class="field"><label for="hours-set">Carga semanal prevista (horas)</label><input id="hours-set" name="hours" type="number" min="1" max="80" step="1" required value="${Math.round(d.metrics.weekly_target/60)}"></div></div><button class="btn primary" type="submit">Salvar meta semanal</button></form></div></section><div class="info-box" style="margin-top:17px">Esta interface usa dados locais. Não há login, sincronização entre dispositivos nem hospedagem pública. A versão comercial exigirá autenticação, autorização por usuário, backups criptografados e um backend próprio.</div>`}
-function render(){const d=state.data;if(!d)return;$('#side-nav').innerHTML=navMarkup();$('#crumb').textContent=views[state.page];const chips={home:overviewView,today:todayView,plan:planView,insights:d=>adaptiveView(d,{heading,actionBtn}),chart:chartView,subjects:subjectsView,cycle:cycleView,guide:guideView,questions:questionsView,review:reviewsView,assess:assessmentsView,sources:d=>sourcesView(d,{heading}),fiscal:d=>fiscalView(d,{heading},state.fiscalPreview),archive:archiveView,settings:settingsView};$('#content').innerHTML=chips[state.page](d);
+function setupBrandLogo(){
+ const img=document.querySelector('.cm-brand-photo');
+ const container=img?.closest('.brand-link');
+ if(!img||!container||container.dataset.cmLogoBound==='1')return;
+ container.dataset.cmLogoBound='1';
+ const show=()=>{if(img.naturalWidth>0)container.classList.add('cm-brand-loaded');};
+ img.addEventListener('load',show,{once:true});
+ if(img.complete)show();
+}
+function setupHeroParallax(){
+ const hero=document.getElementById('hero-banner');
+ if(!hero)return;
+ const photo=hero.querySelector('.cm-hero-photo');
+ if(photo){
+   const activate=()=>{if(photo.naturalWidth)hero.classList.add('cm-banner-loaded');};
+   photo.addEventListener('load',activate,{once:true});
+   if(photo.complete)activate();
+ }
+ if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ hero.addEventListener('pointermove',event=>{
+   const bounds=hero.getBoundingClientRect();
+   const x=(event.clientX-bounds.left)/bounds.width-.5;
+   const y=(event.clientY-bounds.top)/bounds.height-.5;
+   hero.style.setProperty('--parallax-x',(x*14).toFixed(1)+'px');
+   hero.style.setProperty('--parallax-y',(y*9).toFixed(1)+'px');
+ });
+ hero.addEventListener('pointerleave',()=>{
+   hero.style.setProperty('--parallax-x','0px');
+   hero.style.setProperty('--parallax-y','0px');
+ });
+}
+function render(){const d=state.data;if(!d)return;setupBrandLogo();$('#side-nav').innerHTML=navMarkup();$('#crumb').textContent=views[state.page];const chips={home:overviewView,today:todayView,plan:planView,insights:d=>adaptiveView(d,{heading,actionBtn}),chart:chartView,subjects:subjectsView,cycle:cycleView,guide:guideView,questions:questionsView,review:reviewsView,assess:assessmentsView,sources:d=>sourcesView(d,{heading}),fiscal:d=>fiscalView(d,{heading},state.fiscalPreview),archive:archiveView,settings:settingsView};$('#content').innerHTML=chips[state.page](d);
 if(state.page==='guide')renderStudyGuide($('#study-guide-panel')).catch(e=>toast(e.message,true));
+if(state.page==='guide')renderCurriculum($('#curriculum-report')).catch(e=>toast(e.message,true));
+if(state.page==='home')setupHeroParallax();
 if(state.page==='chart')renderStudyTime($('#study-time-report')).catch(e=>toast(e.message,true));
 if(state.page==='review')renderAnkiAnalytics($('#anki-analytics-report')).catch(e=>toast(e.message,true));
 studyTimer.update();
