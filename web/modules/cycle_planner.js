@@ -3,7 +3,7 @@ import {api} from './http.js';
 import {escapeHTML as h} from './format.js';
 let subjects=[],topics={};
 const esc=h;
-const kinds=['Ciclo','Microciclo','Semana fixa'];
+const kinds=['Ciclo','Microciclo'];
 const methods=['Teoria','Questões','Lei seca','Revisão','Flashcards','Caderno de erros','Simulado'];
 function opts(values){return values.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');}
 async function draw(root){
@@ -34,12 +34,30 @@ async function draw(root){
      <div class="cm-bank-top"><small>${esc(c.kind)} · rodada ${c.round_number} ·
        ${c.completed_rounds} rodada(s) concluída(s)</small><b>${c.marked_blocks}/${c.planned_blocks} blocos</b></div>
      <div class="cm-curr-progress"><span style="width:${c.planned_blocks?100*c.marked_blocks/c.planned_blocks:0}%"></span></div>
-     ${c.segments.map(x=>`<div class="cm-cycle-item"><div><strong>${esc(x.subject)}</strong>
-         <small>${esc(x.topic||'Conteúdo livre')} · ${esc(x.method)} · ${x.blocks*30} min planejados</small></div>
+     ${c.segments.map((x,idx)=>`<div class="cm-cycle-segment"><div class="cm-cycle-item"><div><strong>${esc(x.subject)}</strong>
+         <small>${esc(x.topic||'Conteúdo livre')} · ${esc(x.method)} · ${x.blocks*30} min planejados</small>
+         <div class="cm-cycle-actions">
+           <button type="button" class="btn small" data-cycle-move="${x.id}" data-direction="-1" ${idx===0?'disabled':''}>↑ Subir</button>
+           <button type="button" class="btn small" data-cycle-move="${x.id}" data-direction="1" ${idx===c.segments.length-1?'disabled':''}>↓ Descer</button>
+           <button type="button" class="btn small" data-cycle-edit="${x.id}">Editar</button>
+           <button type="button" class="btn small" data-cycle-archive="${x.id}">Arquivar</button>
+         </div></div>
          <div class="cm-cycle-blocks">${Array.from({length:x.blocks},(_,i)=>`<button type="button"
            class="cm-cycle-check" data-cycle-segment="${x.id}" data-block="${i+1}" data-done="${x.done.includes(i+1)}"
            title="Marcar bloco ${i+1} de 30 minutos como ${x.done.includes(i+1)?'pendente':'concluído'}"
            aria-label="Bloco ${i+1} ${x.done.includes(i+1)?'concluído':'pendente'}">${x.done.includes(i+1)?'✓':'○'}</button>`).join('')}</div>
+       </div>
+       <form class="cm-cycle-edit" data-segment="${x.id}" data-current-subject="${esc(x.subject)}"
+         data-current-method="${esc(x.method)}" hidden>
+         <div class="field"><label>Disciplina</label><select name="subject" required>${opts(subjects)}</select></div>
+         <div class="field"><label>Assunto</label><input name="topic" maxlength="250" value="${esc(x.topic)}"></div>
+         <div class="fields">
+           <div class="field"><label>Modalidade</label><select name="method">${opts(methods)}</select></div>
+           <div class="field"><label>Blocos de 30 minutos</label><input name="blocks" type="number" min="1" max="12" value="${x.blocks}" required></div>
+         </div>
+         <div class="cm-cycle-actions"><button type="submit" class="btn primary small">Salvar alterações</button>
+           <button type="button" class="btn small" data-cycle-cancel="${x.id}">Cancelar</button></div>
+       </form>
        </div>`).join('')}
      <details><summary class="btn small">+ Adicionar etapa ao ciclo</summary>
        <form class="cm-cycle-add" data-cid="${c.id}" style="margin-top:12px">
@@ -54,6 +72,10 @@ async function draw(root){
        </form></details>
      <p class="cm-cycle-warning">Blocos planejados não entram automaticamente nas horas líquidas.</p></article>`).join('')}
    </div></div></section>`;
+   for(const form of root.querySelectorAll('form.cm-cycle-edit')){
+      form.elements.subject.value=form.dataset.currentSubject;
+      form.elements.method.value=form.dataset.currentMethod;
+   }
    for(const f of root.querySelectorAll('form.cm-cycle-add')){
      const sub=f.elements.subject, list=f.querySelector('datalist');
      const refresh=()=>{list.innerHTML=(topics[sub.value]||[]).map(x=>`<option value="${esc(x)}"></option>`).join('');};
@@ -66,13 +88,16 @@ export async function renderCyclePlanner(root){
   root.dataset.cmCycleBound='1';
   root.addEventListener('submit',async event=>{
    const form=event.target;
-   if(form.id!=='cm-cycle-create'&&!form.classList.contains('cm-cycle-add'))return;
+   if(form.id!=='cm-cycle-create'&&!form.classList.contains('cm-cycle-add')&&!form.classList.contains('cm-cycle-edit'))return;
    event.preventDefault();
    const values=Object.fromEntries(new FormData(form).entries());
    try{
     if(form.id==='cm-cycle-create'){
       await api('study-cycles/create',{title:values.title,kind:values.kind,
         parent_id:values.kind==='Microciclo'?Number(values.parent_id)||null:null});
+    }else if(form.classList.contains('cm-cycle-edit')){
+      await api('study-cycles/item/edit',{segment_id:Number(form.dataset.segment),
+        subject:values.subject,topic:values.topic,method:values.method,blocks:Number(values.blocks)});
     }else{
       await api('study-cycles/item',{cycle_id:Number(form.dataset.cid),
         subject:values.subject,topic:values.topic,method:values.method,blocks:Number(values.blocks)});
@@ -81,6 +106,33 @@ export async function renderCyclePlanner(root){
    }catch(err){alert('Não foi possível salvar: '+err.message);}
   });
   root.addEventListener('click',async event=>{
+    const cmd=event.target.closest('button');
+    if(cmd?.dataset.cycleEdit){
+      const form=root.querySelector('.cm-cycle-edit[data-segment="'+cmd.dataset.cycleEdit+'"]');
+      if(form)form.hidden=!form.hidden;
+      return;
+    }
+    if(cmd?.dataset.cycleCancel){
+      const form=root.querySelector('.cm-cycle-edit[data-segment="'+cmd.dataset.cycleCancel+'"]');
+      if(form)form.hidden=true;
+      return;
+    }
+    if(cmd?.dataset.cycleMove){
+      try{
+        await api('study-cycles/item/move',{segment_id:Number(cmd.dataset.cycleMove),
+          direction:Number(cmd.dataset.direction)});
+        await draw(root);
+      }catch(err){alert('Não foi possível alterar a ordem: '+err.message);}
+      return;
+    }
+    if(cmd?.dataset.cycleArchive){
+      if(!confirm('Arquivar esta etapa do roteiro? O histórico permanecerá guardado.'))return;
+      try{
+        await api('study-cycles/item/archive',{segment_id:Number(cmd.dataset.cycleArchive),confirm:true});
+        await draw(root);
+      }catch(err){alert('Não foi possível arquivar: '+err.message);}
+      return;
+    }
     const btn=event.target.closest('.cm-cycle-check');
     if(!btn)return;
     btn.disabled=true;
