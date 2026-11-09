@@ -41,6 +41,7 @@ async function draw(root){
                 <tbody>${g.topics.map(t=>`<tr>
                   <td class="cm-curr-lesson">${h(t.lesson||'—')}</td>
                   <td><strong>${h(t.topic)}</strong>
+                      ${t.subtopics?.length?`<small class="cm-curr-origin"><b>Subassuntos:</b> ${t.subtopics.map(h).join(' · ')}</small>`:''}
                       <small class="cm-curr-origin">${h(t.origins.join(' · '))}</small></td>
                   <td><button class="cm-inc-level" type="button"
                     data-level="${t.importance_level||''}" data-importance-subject="${h(t.subject)}"
