@@ -35,3 +35,11 @@ logs/
 dados/materiais/
 dados/importacoes/
 dados/backups/
+
+# Dados locais gerados pela catalogação de PDFs (caminhos pessoais)
+/assuntos_locais.json
+/incidencias_local.json
+/dados/assuntos_locais.json
+/dados/incidencias_local.json
+/importacoes_locais/
+/relatorios_locais/
