@@ -14,6 +14,7 @@ on:
       - chore/organizacao-segura-historico-v082
       - feat/guia-edital-anki-diagnostico-v083
       - feat/provas-bancas-materiais-brand-v084
+      - feat/catalogo-edital-imagens-v085
 jobs:
   testes:
     runs-on: ubuntu-latest
