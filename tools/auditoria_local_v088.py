@@ -1,4 +1,4 @@
-"""Auditoria local SOMENTE DE LEITURA da catalogação v0.8.8.
+r"""Auditoria local SOMENTE DE LEITURA da catalogação v0.8.8.
 
 Não importa PDFs/JSON, não recalcula prioridades, não cria banco, não faz commit,
 não substitui versão e não modifica tabelas. Execute em um checkout do GitHub:
