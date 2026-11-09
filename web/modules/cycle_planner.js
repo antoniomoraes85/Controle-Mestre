@@ -35,7 +35,7 @@ async function draw(root){
        Nenhuma etapa é adicionada automaticamente. Escolha um ciclo antes de incluir.</p>
      <label class="cm-priority-cycle-label">Adicionar ao ciclo:
         <select id="cm-priority-cycle"><option value="">Escolha um ciclo</option>
-          ${data.cycles.filter(x=>x.kind==='Ciclo').map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select>
+          ${data.cycles.filter(x=>x.kind==='Ciclo'||x.kind==='Microciclo').map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select>
      </label>
      <div class="cm-priority-cards">
        ${(curriculum.priority_suggestions||[]).slice(0,15).map(x=>`
