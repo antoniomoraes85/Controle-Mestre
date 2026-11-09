@@ -9,11 +9,29 @@ from core import all_rows,norm
 from lesson_catalog import lessons as catalog_lessons
 from study_guide import prepare as prepare_guide
 from sources import prepare as prepare_sources
+from bizu_seed import rows as bizu_rows
+from topic_importance import read as importance_read,level_for_incidence
 
 def report(c):
     prepare_guide(c);prepare_sources(c)
     result={}
     stats={'guide':0,'catalog':0,'topics':0,'pdfs':0}
+    importance=importance_read(c)
+    historical={}
+    for raw in bizu_rows():
+        if raw['incidence_pct'] is not None:
+            historical[(norm(raw['subject']),norm(raw['topic']))]=raw
+    def documented_incidence(subject,topic):
+        key=(norm(subject),norm(topic))
+        if key in historical:return historical[key]
+        # Só aceita prefixo completo delimitado, p.ex. "Índices de liquidez:
+        # objetivos..." vinculado à categoria histórica "Índices de liquidez".
+        candidates=[]
+        for (s,t),raw in historical.items():
+            if s!=key[0] or not key[1].startswith(t+' '):continue
+            candidates.append(raw)
+        return candidates[0] if len(candidates)==1 else None
+
     def add(subject,topic,source,**fields):
         if not subject or not topic:return
         k=(norm(subject),norm(topic))
@@ -23,6 +41,12 @@ def report(c):
             'incidence_pct':None,'incidence_source':'',
             'pdfs':[],'origins':[],'guide_id':None,'entry_id':None,'total_questions':0,'correct_questions':0})
         if source not in entry['origins']:entry['origins'].append(source)
+        if entry['incidence_pct'] is None:
+            historical_row=documented_incidence(subject,topic)
+            if historical_row:
+                entry['incidence_pct']=historical_row['incidence_pct']
+                entry['incidence_source']=historical_row['source_type']+' · '+historical_row['source_reference']+' (categoria histórica, correspondência textual)'
+
         if fields.get('lesson') and not entry['lesson']:entry['lesson']=fields['lesson']
         if fields.get('incidence_pct') is not None and entry['incidence_pct'] is None:
             entry['incidence_pct']=fields['incidence_pct']
@@ -85,6 +109,11 @@ def report(c):
             e['correct_questions']+=row['correct']
     grouped=defaultdict(list)
     for row in result.values():
+        k=(norm(row['subject']),norm(row['topic']))
+        manual=importance.get(k)
+        row['importance_level']=manual if manual is not None else level_for_incidence(row['incidence_pct'])
+        row['importance_basis']='Definido por você' if manual is not None else (
+            'Faixa indicativa por incidência histórica (não oficial)' if row['incidence_pct'] is not None else 'Sem classificação')
         row['question_rate']=(row['correct_questions']/row['total_questions']
                               if row['total_questions'] else None)
         grouped[row['subject']].append(row)
