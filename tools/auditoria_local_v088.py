@@ -175,7 +175,9 @@ def audit(repo: Path, db: Path, app: Path, pdf_root: Path | None = None) -> dict
         "git": {
             "branch": cmd("git", "branch", "--show-current", cwd=repo),
             "head": cmd("git", "rev-parse", "HEAD", cwd=repo),
-            "status_porcelain": cmd("git", "status", "--porcelain", cwd=repo),
+            "working_tree_clean": not bool(
+                cmd("git", "status", "--porcelain", cwd=repo)),
+            # Não expor nomes de arquivos privados do diretório de trabalho.
             "remote_head": cmd(
                 "git", "ls-remote", "origin",
                 "refs/heads/feat/prioridade-inteligente-catalogo-v088",
