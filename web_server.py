@@ -174,18 +174,19 @@ class AppHandler(BaseHTTPRequestHandler):
             try:
                 path=path_for_material(c,int(route.rsplit('/',1)[-1]))
                 size=path.stat().st_size
+                download=parse_qs(urlsplit(self.path).query).get('download',['0'])[0]=='1'
                 self.send_response(200)
                 for k,v in [('Content-Type','application/pdf'),('Content-Length',str(size)),
                             ('X-Content-Type-Options','nosniff'),('Cache-Control','no-store'),
                             ('Content-Security-Policy',"default-src 'none'; sandbox"),
-                            ('Content-Disposition','inline')]:self.send_header(k,v)
+                            ('Content-Disposition',('attachment; filename="controle-mestre-material.pdf"' if download else 'inline'))]:self.send_header(k,v)
                 self.end_headers()
                 with path.open('rb') as pdf:
                     for chunk in iter(lambda:pdf.read(1024*1024),b''):self.wfile.write(chunk)
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.5','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.6','mode':'private-local','multiuser':False})
         # --- Rastreamento de erros ---
         if route=='/api/assessment/insights':
             c=connect()
@@ -321,6 +322,14 @@ class AppHandler(BaseHTTPRequestHandler):
                     args.get('total'),args.get('correct'),args.get('error_type',''),args.get('notes',''),args.get('day')))
             if route=='/api/sources/root':
                 return self._json(200,set_external_root(c,args.get('path',''),args.get('confirm') is True))
+            if route=='/api/materials/open':
+                # Abertura segura pelo aplicativo leitor padrão do Windows;
+                # o caminho é recuperado EXCLUSIVAMENTE por ID cadastrado.
+                if args.get('confirm') is not True:raise ValueError('Confirmação obrigatória.')
+                if os.name!='nt':raise ValueError('Abertura externa disponível somente no Windows.')
+                target=path_for_material(c,int(args.get('id')))
+                os.startfile(str(target))
+                return self._json(200,{'ok':True,'message':'PDF aberto no leitor padrão do Windows.'})
             if route=='/api/sources/scan':
                 return self._json(200,scan_pdfs(c))
             if route=='/api/sources/material':
