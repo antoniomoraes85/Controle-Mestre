@@ -136,6 +136,15 @@ class AtualizadorTests(unittest.TestCase):
         self.assertTrue((self.desktop_cm / "RELATORIO_ARQUIVAMENTO.txt").is_file())
         self.assertEqual(len(res["databases"]), 1)
 
+    def test_atualizador_permanente_recebe_codigo_novo(self):
+        """Instalar app deve renovar script da pasta atualizador sem criar pasta extra."""
+        novo = self.app / "atualizador.py"
+        novo.write_text("# nova versão segura do atualizador\\n", encoding="utf-8")
+        atualizador.setup_desktop_folder(self.paths)
+        atual = self.paths["updater"] / "atualizador.py"
+        self.assertEqual(atual.read_text(encoding="utf-8"), "# nova versão segura do atualizador\\n")
+        self.assertTrue((self.desktop_cm / "ATUALIZAR_CONTROLE_MESTRE.bat").exists())
+
     def test_setup_desktop_folder(self):
         atualizador.setup_desktop_folder(self.paths)
         self.assertTrue((self.desktop_cm / "ABRIR_CONTROLE_MESTRE.bat").is_file())
