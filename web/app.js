@@ -296,9 +296,18 @@ async function handleAction(el){const action=el.dataset.action;try{
     }
     return;
  }
+ if(action==='autolink-materials'){
+   if(!confirm('Analisar PDFs já catalogados e preencher somente disciplinas/assuntos vazios quando houver correspondência segura? Nenhum vínculo manual será substituído.'))return;
+   const result=await api('sources/autolink',{confirm:true});
+   await load();
+   toast('Vínculos automáticos: '+result.subjects_assigned+' disciplinas, '+
+      result.topics_assigned+' assuntos, '+result.types_assigned+' tipos. '+
+      result.remaining_unlinked+' ainda exigem revisão.');
+   return;
+ }
  if(action==='scan-materials'){
    const result=await api('sources/scan',{});
-   await load();toast(`${result.scanned} PDF(s) catalogado(s)${result.errors.length?' · '+result.errors.length+' aviso(s)':''}.`);return;
+   await load();toast(`${result.scanned} PDF(s) catalogado(s) · ${result.auto_linked?.topics_assigned||0} novo(s) assunto(s) vinculado(s). ${result.errors.length?' · '+result.errors.length+' aviso(s)':''}`);return;
  }
  if(action==='edit-material'){
    const item=state.data.sources.materials.find(x=>x.id===Number(el.dataset.id));if(!item)return;
