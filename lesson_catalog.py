@@ -93,7 +93,7 @@ def status(c):
     subjects=[]
     known=set(grouped)
     # Todas as disciplinas aparecem na navegação, mesmo sem CSV.
-    for subj in [x[0] for x in DEFAULT_SUBJECTS]+sorted(known-{x[0] for x in DEFAULT_SUBJECTS}):
+    for subj in list(EXPECTED_SUBJECTS)+[x[0] for x in DEFAULT_SUBJECTS if x[0] not in EXPECTED_SUBJECTS]+sorted(known-{x[0] for x in DEFAULT_SUBJECTS}):
         rows=sorted(grouped.get(subj,{}).values(),key=lambda e:(norm(e['lesson']),e['topic']))
         for entry in rows:
             incidence=percentages.get((norm(subj),norm(entry['topic'])))
