@@ -28,19 +28,32 @@ class MaterialAutolinkTests(unittest.TestCase):
   row=self.c.execute('SELECT subject,topic FROM study_materials').fetchone()
   self.assertEqual(row['subject'],'Contabilidade Geral')
   self.assertEqual(row['topic'],'Balanço patrimonial')
- def test_course_consensus_recovers_flat_pdf(self):
+ def test_course_id_is_not_subject_and_header_identifies_bizu(self):
+  # curso 355031 é uma coleção de Bizus de várias matérias.
   self.insert('@externo/Cursos/curso-355031-aula-01-completo.pdf',
               subject='Contabilidade Geral',topic='Tema 1',lesson='Aula 01')
   self.insert('@externo/Cursos/curso-355031-aula-02-completo.pdf',
               subject='Contabilidade Geral',topic='Tema 2',lesson='Aula 02')
+  self.insert('@externo/Cursos/curso-355031-aula-03-completo.pdf')
+  with patch.object(material_autolink,'lessons',return_value=[]), \\
+       patch.object(material_autolink,'read_first_pages',
+                    return_value='BIZU ESTRATÉGICO DE AUDITORIA CONTÁBIL – SEFAZ-RS'):
+   result=material_autolink.infer(self.c)
+  self.assertEqual(result['subjects_assigned'],1)
+  row=self.c.execute("SELECT subject,topic,material_type FROM study_materials WHERE lesson='Aula 03'").fetchone()
+  self.assertEqual(row['subject'],'Auditoria')
+  self.assertEqual(row['topic'],'')
+  self.assertEqual(row['material_type'],'Bizu Estratégico')
+  self.assertTrue(result['remaining_unlinked']>=1)
+ def test_without_pdf_header_same_course_is_not_enough(self):
+  self.insert('@externo/Cursos/curso-355031-aula-01-completo.pdf',
+              subject='Contabilidade Geral',topic='Tema 1',lesson='Aula 01')
   self.insert('@externo/Cursos/curso-355031-aula-03-simplificado.pdf')
   with patch.object(material_autolink,'lessons',return_value=[]):
-   out=material_autolink.infer(self.c)
-  self.assertEqual(out['subjects_assigned'],1)
-  self.assertEqual(out['types_assigned'],1)
-  row=self.c.execute("SELECT subject,topic,material_type FROM study_materials WHERE lesson='Aula 03'").fetchone()
-  self.assertEqual(row['subject'],'Contabilidade Geral')
-  self.assertEqual(row['topic'],'')
+   result=material_autolink.infer(self.c)
+  self.assertEqual(result['subjects_assigned'],0)
+  row=self.c.execute("SELECT subject,material_type FROM study_materials WHERE lesson='Aula 03'").fetchone()
+  self.assertEqual(row['subject'],'')
   self.assertEqual(row['material_type'],'Simplificado')
  def test_ambiguous_course_never_assigns_wrong_subject(self):
   self.insert('@externo/Cursos/curso-22222-aula-01.pdf','Contabilidade Geral',lesson='Aula 01')
