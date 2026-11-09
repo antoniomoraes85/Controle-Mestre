@@ -3,7 +3,7 @@ import sys,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-import core,sources,material_autolink,topic_importance
+import core,sources,material_autolink,topic_importance,lesson_catalog
 
 class MaterialAutolinkTests(unittest.TestCase):
  def setUp(self):
@@ -21,7 +21,7 @@ class MaterialAutolinkTests(unittest.TestCase):
  def test_folder_subject_and_catalog_exact_lesson(self):
   self.insert('@externo/1 - Contabilidade Geral/aula/curso-12345-aula-03-completo.pdf')
   mock=[{'disciplina':'Contabilidade Geral','aula':'Aula 03','assunto':'Balanço patrimonial'}]
-  with patch.object(material_autolink,'lessons',return_value=mock):
+  with patch.object(lesson_catalog,'lessons',return_value=mock):
    result=material_autolink.infer(self.c)
   self.assertEqual(result['subjects_assigned'],1)
   self.assertEqual(result['topics_assigned'],1)
@@ -35,7 +35,8 @@ class MaterialAutolinkTests(unittest.TestCase):
   self.insert('@externo/Cursos/curso-355031-aula-02-completo.pdf',
               subject='Contabilidade Geral',topic='Tema 2',lesson='Aula 02')
   self.insert('@externo/Cursos/curso-355031-aula-03-completo.pdf')
-  with (patch.object(material_autolink,'lessons',return_value=[]),
+  with (patch.object(lesson_catalog,'lessons',return_value=[]),
+       patch.object(sources,'path_for_key',return_value=Path('.')),
        patch.object(material_autolink,'read_first_pages',
                     return_value='BIZU ESTRATÉGICO DE AUDITORIA CONTÁBIL – SEFAZ-RS')):
    result=material_autolink.infer(self.c)
@@ -49,7 +50,7 @@ class MaterialAutolinkTests(unittest.TestCase):
   self.insert('@externo/Cursos/curso-355031-aula-01-completo.pdf',
               subject='Contabilidade Geral',topic='Tema 1',lesson='Aula 01')
   self.insert('@externo/Cursos/curso-355031-aula-03-simplificado.pdf')
-  with patch.object(material_autolink,'lessons',return_value=[]):
+  with patch.object(lesson_catalog,'lessons',return_value=[]):
    result=material_autolink.infer(self.c)
   self.assertEqual(result['subjects_assigned'],0)
   row=self.c.execute("SELECT subject,material_type FROM study_materials WHERE lesson='Aula 03'").fetchone()
@@ -59,7 +60,7 @@ class MaterialAutolinkTests(unittest.TestCase):
   self.insert('@externo/Cursos/curso-22222-aula-01.pdf','Contabilidade Geral',lesson='Aula 01')
   self.insert('@externo/Cursos/curso-22222-aula-02.pdf','Direito Tributário',lesson='Aula 02')
   self.insert('@externo/Cursos/curso-22222-aula-03.pdf')
-  with patch.object(material_autolink,'lessons',return_value=[]):
+  with patch.object(lesson_catalog,'lessons',return_value=[]):
    res=material_autolink.infer(self.c)
   self.assertEqual(res['subjects_assigned'],0)
   row=self.c.execute("SELECT subject FROM study_materials WHERE lesson='Aula 03'").fetchone()[0]
@@ -67,7 +68,7 @@ class MaterialAutolinkTests(unittest.TestCase):
  def test_manual_data_survives(self):
   self.insert('@externo/Contabilidade Geral/curso-33333-aula-03.pdf',
               subject='Direito Tributário',topic='Tópico informado por mim')
-  with patch.object(material_autolink,'lessons',return_value=[]):
+  with patch.object(lesson_catalog,'lessons',return_value=[]):
    material_autolink.infer(self.c)
   self.assertEqual(self.c.execute('SELECT topic FROM study_materials').fetchone()[0],
       'Tópico informado por mim')
