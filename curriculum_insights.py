@@ -21,22 +21,24 @@ def report(c):
         entry=result.setdefault(k,{'subject':subject,'topic':topic,
             'lesson':'','status':'Não iniciado','progress':0,
             'incidence_pct':None,'incidence_source':'',
-            'pdfs':[],'origins':[],'total_questions':0,'correct_questions':0})
+            'pdfs':[],'origins':[],'guide_id':None,'entry_id':None,'total_questions':0,'correct_questions':0})
         if source not in entry['origins']:entry['origins'].append(source)
         if fields.get('lesson') and not entry['lesson']:entry['lesson']=fields['lesson']
         if fields.get('incidence_pct') is not None and entry['incidence_pct'] is None:
             entry['incidence_pct']=fields['incidence_pct']
             entry['incidence_source']=fields.get('incidence_source','')
+        if fields.get('entry_id'):
+            entry['entry_id']=fields['entry_id'];entry['guide_id']=fields.get('guide_id')
         if fields.get('status') is not None:
             entry['status']=fields['status']
             entry['progress']=fields['progress']
         return entry
     # Registros já existentes: conservar progresso individual das diversas fontes.
-    guide=all_rows(c,"""SELECT subject,topic,status,progress,incidence_pct,
+    guide=all_rows(c,"""SELECT id,guide_id,subject,topic,status,progress,incidence_pct,
       source_type,source_reference FROM study_guide_entries ORDER BY id""")
     for row in guide:
         add(row['subject'],row['topic'],'Guia de estudos',
-            status=row['status'],progress=row['progress'],
+            entry_id=row['id'],guide_id=row['guide_id'],status=row['status'],progress=row['progress'],
             incidence_pct=row['incidence_pct'],incidence_source=row['source_type']+
             (' · '+row['source_reference'] if row['source_reference'] else ''))
     stats['guide']=len(guide)
