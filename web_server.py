@@ -21,6 +21,7 @@ from anki_analytics import collect as anki_review_collect, save as anki_review_s
 from assessment_insights import report as assess_insights_report, record as portuguese_record, remove as portuguese_remove
 from question_bank import report as question_bank_report
 from lesson_question_links import save as lesson_link_save
+from curriculum_insights import report as curriculum_report
 from adaptive import diagnose, preview_plan, apply_plan
 from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
@@ -131,6 +132,10 @@ class AppHandler(BaseHTTPRequestHandler):
             c=connect()
             try:return self._json(200,study_time_report(c))
             finally:c.close()
+        if route=='/api/curriculum':
+            c=connect()
+            try:return self._json(200,curriculum_report(c))
+            finally:c.close()
         if route=='/api/study-guide':
             c=connect()
             try:return self._json(200,study_read(c))
@@ -180,7 +185,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             except ValueError as exc:return self._json(404,{'error':str(exc)})
             finally:c.close()
-        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.4','mode':'private-local','multiuser':False})
+        if route=='/api/health':return self._json(200,{'ok':True,'app':'CONTROLE MESTRE','version':'0.8.5','mode':'private-local','multiuser':False})
         # --- Rastreamento de erros ---
         if route=='/api/assessment/insights':
             c=connect()
