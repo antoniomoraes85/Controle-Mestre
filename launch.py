@@ -32,7 +32,8 @@ ESSENTIAL = ('core.py', 'web_server.py', 'assessments.py',
              'web/modules/assessment_insights.js', 'web/modules/question_bank.js',
              'lesson_question_links.py','curriculum_insights.py',
              'web/modules/curriculum.js','material_autolink.py','topic_importance.py',
-             'cycle_planner.py','web/modules/cycle_planner.js')
+             'cycle_planner.py','web/modules/cycle_planner.js',
+             'priority_engine.py','curriculum_evidence.py','local_curriculum_import.py')
 
 
 def _existing_controle_mestre(port: int) -> bool:
@@ -42,7 +43,7 @@ def _existing_controle_mestre(port: int) -> bool:
             return (resp.status == 200 and info.get('ok') is True
                     and info.get('app') == 'CONTROLE MESTRE'
                     and info.get('mode') == 'private-local'
-                    and info.get('version') == '0.8.7')
+                    and info.get('version') == '0.8.8')
     except (OSError, HTTPError, URLError, ValueError, TypeError):
         return False
 
