@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import core,topic_importance,priority_engine,curriculum_evidence,curriculum_insights,study_guide
+import curriculum_topic_links,sources
 
 class PriorityEngineTests(unittest.TestCase):
     def test_absence_of_data_is_not_fabricated(self):
@@ -84,6 +85,50 @@ class PriorityPersistenceTests(unittest.TestCase):
                 material_type='Bizu Estratégico',document_reference='local.pdf',page=2)]
         curriculum_evidence.register(self.c,z,verified=False)
         self.assertFalse(curriculum_evidence.read_verified(self.c))
+    def test_multiple_topics_same_pdf_without_overwriting_original(self):
+        sources.prepare(self.c)
+        self.c.execute("""INSERT INTO study_materials(relative_path,file_name,digest,size_bytes,
+            subject,topic,lesson,updated_at,material_type,status)
+            VALUES('test/aula.pdf','aula.pdf','sha',100,'Direito Tributário','','Aula 03',
+                   '2026-11-09','Teoria','Disponível')""")
+        mid=self.c.execute('SELECT id FROM study_materials').fetchone()[0]
+        rows=[
+          {'material_id':mid,'subject':'Direito Tributário','topic':'Obrigação tributária',
+           'subtopic':'Sujeito passivo','page_from':2,'page_to':5,'excerpt':'Sujeito passivo'},
+          {'material_id':mid,'subject':'Direito Tributário','topic':'Crédito tributário',
+           'subtopic':'Lançamento tributário','page_from':6,'page_to':12,'excerpt':'Lançamento'}
+        ]
+        curriculum_topic_links.register(self.c,rows,verified=True)
+        with patch.object(curriculum_insights,'catalog_lessons',return_value=[]):
+            data=curriculum_insights.report(self.c)
+        topics=next(x for x in data['subjects'] if x['subject']=='Direito Tributário')['topics']
+        self.assertEqual({x['topic'] for x in topics},{'Obrigação tributária','Crédito tributário'})
+        self.assertEqual(len(topics),2)
+        self.assertTrue(all(x['pdfs'][0]['id']==mid for x in topics))
+        self.assertEqual(data['stats']['pdf_topic_links'],2)
+        self.assertEqual(self.c.execute('SELECT topic FROM study_materials').fetchone()[0],'')
+    def test_pending_topic_link_not_displayed(self):
+        sources.prepare(self.c)
+        self.c.execute("""INSERT INTO study_materials(relative_path,file_name,digest,size_bytes,
+          subject,lesson,updated_at,material_type,status) VALUES
+          ('test/aula.pdf','aula.pdf','sha',100,'Direito Tributário','Aula 01',
+          '2026-11-09','Teoria','Disponível')""")
+        mid=self.c.execute('SELECT id FROM study_materials').fetchone()[0]
+        row={'material_id':mid,'subject':'Direito Tributário','topic':'ICMS',
+            'page_from':2,'page_to':3}
+        curriculum_topic_links.register(self.c,[row],verified=False)
+        self.assertEqual(curriculum_topic_links.read_verified(self.c),[])
+    def test_reject_conflicting_material_subject(self):
+        sources.prepare(self.c)
+        self.c.execute("""INSERT INTO study_materials(relative_path,file_name,digest,size_bytes,
+          subject,lesson,updated_at,material_type,status) VALUES
+          ('test/aula.pdf','aula.pdf','sha',100,'Contabilidade Geral','Aula 01',
+          '2026-11-09','Teoria','Disponível')""")
+        mid=self.c.execute('SELECT id FROM study_materials').fetchone()[0]
+        with self.assertRaises(ValueError):
+            curriculum_topic_links.register(self.c,[{'material_id':mid,'subject':'Direito Tributário',
+              'topic':'Crédito','page_from':1}],verified=True)
+
     def test_evidence_requires_page_and_source(self):
         with self.assertRaises(ValueError):
             curriculum_evidence.register(self.c,[{'subject':'Direito Tributário','topic':'Tema',
