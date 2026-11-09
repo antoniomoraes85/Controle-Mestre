@@ -104,7 +104,7 @@ def infer(c,apply=True):
         if re.search(r'\bbizu estrategico\b',n):identified='Bizu Estratégico'
         elif re.search(r'\bpasso estrategico\b',n):identified='Passo Estratégico'
         typ=item['material_type']
-        if typ=='Teoria' and identified!='Teoria':typ=identified
+        if typ=='Teoria' and identified!='Teoria' and not item['topic']:typ=identified
         # 'Aula 03' de um Bizu NÃO é aula 03 do curso teórico.
         if subject and item['lesson'] and not topic and typ in ('Teoria','Simplificado','Questões'):
             candidates=catalog.get((norm(subject),norm(item['lesson'])),[])
