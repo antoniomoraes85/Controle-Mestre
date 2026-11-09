@@ -9,7 +9,8 @@ let selectedSubject='';
 function progress(v){return `<div class="cm-curr-progress"><span style="width:${Math.min(100,Math.max(0,v))}%"></span></div>`;}
 async function draw(root){
   const data=await api('curriculum');
-  const subjectNames=data.subjects.filter(s=>s.topic_count).map(s=>s.subject);
+  const includeEmpty=root.dataset.includeEmpty==='true';
+  const subjectNames=data.subjects.filter(s=>includeEmpty||s.topic_count).map(s=>s.subject);
   if(selectedSubject&&!subjectNames.includes(selectedSubject))selectedSubject='';
   root.innerHTML=`<section class="panel cm-curriculum-panel"><div class="panel-head"><div>
     <h2>Plano de estudo · matérias e assuntos</h2>
@@ -27,20 +28,25 @@ async function draw(root){
         <select id="cm-curr-filter"><option value="">Todas as disciplinas</option>
         ${subjectNames.map(name=>`<option value="${h(name)}" ${selectedSubject===name?'selected':''}>${h(name)}</option>`).join('')}
         </select></label>
-      ${data.subjects.filter(s=>s.topic_count&&(!selectedSubject||s.subject===selectedSubject))
+      ${data.subjects.filter(s=>(includeEmpty||s.topic_count)&&(!selectedSubject||s.subject===selectedSubject))
           .map(g=>`<details class="cm-curr-subject" ${selectedSubject?'open':''}>
              <summary><div class="cm-curr-title"><strong>${h(g.subject)}</strong>
                <span>${g.topic_count} assuntos · ${g.questions} questões ·
                 Rendimento: ${g.question_rate==null?'Sem amostra':pc(g.question_rate*100)}</span>
                </div><div class="cm-curr-subj-progress">${progress(g.progress_pct)}
                 <b>${pc(g.progress_pct)}</b></div></summary>
-              <div class="table-wrap"><table class="act-table cm-curr-table">
-                <thead><tr><th>Aula</th><th>Assunto</th><th>Incidência e fonte</th>
+              ${g.topic_count? `<div class="table-wrap"><table class="act-table cm-curr-table">
+                <thead><tr><th>Aula</th><th>Assunto</th><th>Importância (1–5)</th><th>Incidência e fonte</th>
                   <th>Progresso</th><th>Questões / rendimento</th><th>Material</th><th>Ação</th></tr></thead>
                 <tbody>${g.topics.map(t=>`<tr>
                   <td class="cm-curr-lesson">${h(t.lesson||'—')}</td>
                   <td><strong>${h(t.topic)}</strong>
                       <small class="cm-curr-origin">${h(t.origins.join(' · '))}</small></td>
+                  <td><button class="cm-inc-level" type="button"
+                    data-level="${t.importance_level||''}" data-importance-subject="${h(t.subject)}"
+                    data-importance-topic="${h(t.topic)}" title="${h(t.importance_basis)}">
+                    ${t.importance_level?'Nível '+t.importance_level:'Classificar'}</button>
+                    <small class="cm-curr-origin">${h(t.importance_basis)}</small></td>
                   <td>${pill(t.incidence_pct)}
                      <small class="cm-curr-origin" title="${h(t.incidence_source)}">${h(t.incidence_source||'Sem percentual documentado')}</small></td>
                   <td>${progress(t.progress)}
@@ -57,11 +63,13 @@ async function draw(root){
                          data-subject="${h(t.subject)}" data-topic="${h(t.topic)}"
                          data-incidence="${t.incidence_pct??''}">Adicionar ao guia</button>`}</td>
                 </tr>`).join('')}</tbody>
-              </table></div></details>`).join('')}
+              </table></div>`:
+                   '<p class="subtitle" style="padding:15px">Sem assunto catalogado nesta disciplina. Importe a lista de aulas ou vincule seus PDFs.</p>'}</details>`).join('')}
       ${!data.total_topics?'<p class="subtitle">Ainda não existe catálogo de assuntos. Abra Materiais e TEC, configure sua pasta de PDFs e clique em Atualizar biblioteca; ou importe as incidências do Bizu abaixo.</p>':''}
     </div></section>`;
 }
-export async function renderCurriculum(root){
+export async function renderCurriculum(root,options={}){
+  if(root)root.dataset.includeEmpty=options.includeEmpty?'true':'false';
   if(!root)return;
   if(root.dataset.boundCurriculum!=='1'){
     root.dataset.boundCurriculum='1';
@@ -72,6 +80,16 @@ export async function renderCurriculum(root){
       const btn=e.target.closest('button');
       if(!btn)return;
       try{
+        if(btn.dataset.importanceTopic){
+          const initial=btn.dataset.level||'';
+          const txt=prompt('Nível de importância do assunto (1–5). Este valor será sua classificação pessoal, não uma incidência oficial:',initial);
+          if(txt===null)return;
+          const value=Number(txt);
+          if(!Number.isInteger(value)||value<1||value>5){alert('Informe um nível inteiro de 1 a 5.');return;}
+          await api('curriculum/importance',{subject:btn.dataset.importanceSubject,
+            topic:btn.dataset.importanceTopic,level:value});
+          await draw(root);return;
+        }
         if(btn.dataset.editProgress){
           const prev=Number(btn.dataset.progress);
           const input=prompt('Progresso (0 a 100%) neste assunto:',String(prev));
