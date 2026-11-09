@@ -1,12 +1,12 @@
 {
   "produto": "CONTROLE MESTRE",
   "versao": "0.8.6",
-  "revisao": "555bfc71d53df7509bcd505dc3da4f7f4225f810",
+  "revisao": "c0718ddccf6c61c8062be5113a49b90c0dab39d5",
   "branch_origem": "feat/usabilidade-catalogo-ciclos-v086",
   "data_publicacao": "2026-11-09",
   "status": "consolidada",
   "descricao": "Versao 0.8.6 oficial consolidada com instalacao padronizada, atualizador universal e integridade verificada.",
-  "archive_url": "https://api.github.com/repos/antoniomoraes85/Controle-Mestre/zipball/555bfc71d53df7509bcd505dc3da4f7f4225f810",
+  "archive_url": "https://api.github.com/repos/antoniomoraes85/Controle-Mestre/zipball/c0718ddccf6c61c8062be5113a49b90c0dab39d5",
   "arquivos_obrigatorios": [
     "launch.py",
     "core.py",

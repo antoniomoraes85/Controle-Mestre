@@ -175,7 +175,7 @@ def fetch_official_manifest(url: str = OFFICIAL_MANIFEST_URL) -> dict:
         raise RuntimeError(f"Manifesto de versão oficial inválido ou corrompido: {exc}") from exc
 
 
-def download_zipball(archive_url: str, destination: Path) -> Path:
+def download_zipball(archive_url: str, destination: Path, fallback_url: str | None = None) -> Path:
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     req = urllib.request.Request(
@@ -197,6 +197,9 @@ def download_zipball(archive_url: str, destination: Path) -> Path:
                     raise RuntimeError("Download excedeu o limite máximo de segurança (120MB).")
                 out.write(chunk)
     except urllib.error.HTTPError as exc:
+        if exc.code == 404 and fallback_url and fallback_url != archive_url:
+            print(f"      Aviso: revisão {archive_url} retornou 404. Tentando canal consolidado: {fallback_url}")
+            return download_zipball(fallback_url, destination)
         raise RuntimeError(f"GitHub retornou erro HTTP {exc.code} no download do pacote.") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"Falha de rede ao baixar pacote do GitHub: {exc.reason}") from exc
@@ -538,7 +541,9 @@ def perform_update(
             shutil.copy2(archive_zip, zip_target)
         else:
             print(f"\n[5/6] Baixando atualização do GitHub...")
-            download_zipball(archive_url, zip_target)
+            branch_target = manifest.get("branch_origem", DEFAULT_BRANCH)
+            fallback = f"https://api.github.com/repos/{DEFAULT_REPO}/zipball/{branch_target}"
+            download_zipball(archive_url, zip_target, fallback_url=fallback)
 
         print("      Verificando integridade e arquivos obrigatórios...")
         extracted_root = safe_extract_zip(zip_target, temp_dir / "extract", required)
