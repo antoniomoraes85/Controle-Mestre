@@ -33,7 +33,8 @@ ESSENTIAL = ('core.py', 'web_server.py', 'assessments.py',
              'lesson_question_links.py','curriculum_insights.py',
              'web/modules/curriculum.js','material_autolink.py','topic_importance.py',
              'cycle_planner.py','web/modules/cycle_planner.js',
-             'priority_engine.py','curriculum_evidence.py','local_curriculum_import.py')
+             'priority_engine.py','curriculum_evidence.py','local_curriculum_import.py',
+             'curriculum_topic_links.py','local_curriculum_topics.py')
 
 
 def _existing_controle_mestre(port: int) -> bool:
