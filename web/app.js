@@ -280,6 +280,19 @@ async function handleAction(el){const action=el.dataset.action;try{
    await api('sources/root',{path:path.trim(),confirm:true});
    await load();navigate('sources');toast('Pasta configurada. Clique em Atualizar biblioteca.');return;
  }
+ if(action==='open-material'){
+    const id=Number(el.dataset.id);
+    if(!Number.isInteger(id)||id<=0)throw Error('Material inválido.');
+    try{
+      await api('materials/open',{id,confirm:true});
+      toast('PDF enviado ao leitor padrão do Windows.');
+    }catch(err){
+      if(confirm('Não foi possível abrir no leitor do Windows: '+err.message+'\\nDeseja baixar o PDF para abrir manualmente?')){
+        window.location.href='/api/fiscal/pdf/'+id+'?download=1';
+      }
+    }
+    return;
+ }
  if(action==='scan-materials'){
    const result=await api('sources/scan',{});
    await load();toast(`${result.scanned} PDF(s) catalogado(s)${result.errors.length?' · '+result.errors.length+' aviso(s)':''}.`);return;
