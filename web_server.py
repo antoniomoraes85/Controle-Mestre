@@ -22,6 +22,10 @@ from assessment_insights import report as assess_insights_report, record as port
 from question_bank import report as question_bank_report
 from lesson_question_links import save as lesson_link_save
 from curriculum_insights import report as curriculum_report
+from material_autolink import infer as auto_link_materials
+from topic_importance import save as topic_importance_save
+from cycle_planner import read as cycle_read, create as cycle_create, add_segment as cycle_add, mark as cycle_mark
+
 from adaptive import diagnose, preview_plan, apply_plan
 from smart_reinforcement import recommend as recommend_reinforcements
 from assessments import assessment_summary, insert_mock, insert_essay, delete_assessment
@@ -131,6 +135,10 @@ class AppHandler(BaseHTTPRequestHandler):
         if route=='/api/study-time':
             c=connect()
             try:return self._json(200,study_time_report(c))
+            finally:c.close()
+        if route=='/api/study-cycles':
+            c=connect()
+            try:return self._json(200,cycle_read(c))
             finally:c.close()
         if route=='/api/curriculum':
             c=connect()
@@ -330,6 +338,19 @@ class AppHandler(BaseHTTPRequestHandler):
                 target=path_for_material(c,int(args.get('id')))
                 os.startfile(str(target))
                 return self._json(200,{'ok':True,'message':'PDF aberto no leitor padrão do Windows.'})
+            if route=='/api/sources/autolink':
+                if args.get('confirm') is not True:raise ValueError('Confirme a vinculação automática.')
+                return self._json(200,auto_link_materials(c,apply=True))
+            if route=='/api/curriculum/importance':
+                return self._json(200,topic_importance_save(c,args.get('subject'),args.get('topic'),args.get('level')))
+            if route=='/api/study-cycles/create':
+                return self._json(201,cycle_create(c,args.get('title'),args.get('kind','Ciclo'),args.get('parent_id')))
+            if route=='/api/study-cycles/item':
+                return self._json(201,cycle_add(c,args.get('cycle_id'),args.get('subject'),
+                    args.get('topic',''),args.get('method'),args.get('blocks')))
+            if route=='/api/study-cycles/mark':
+                return self._json(200,cycle_mark(c,args.get('segment_id'),args.get('block_number'),
+                    args.get('done',True)))
             if route=='/api/sources/scan':
                 return self._json(200,scan_pdfs(c))
             if route=='/api/sources/material':
