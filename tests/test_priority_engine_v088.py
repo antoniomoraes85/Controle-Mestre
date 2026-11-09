@@ -68,6 +68,11 @@ class PriorityPersistenceTests(unittest.TestCase):
                document_reference='PASSO_Aula11.pdf',page=11,excerpt='9,7%')
         ]
         curriculum_evidence.register(self.c,z,verified=True)
+        study_guide.prepare(self.c)
+        guide_id=study_guide.create(self.c,'Meu edital',25)['id']
+        study_guide.save_entry(self.c,guide_id,{
+          'subject':'Direito Tributário','topic':'Obrigação tributária',
+          'source_type':'Manual','source_reference':'Conteúdo real', 'incidence_pct':None})
         with patch.object(curriculum_insights,'catalog_lessons',return_value=[]):
             state=curriculum_insights.report(self.c)
         item=next(x for x in state['subjects'] if x['subject']=='Direito Tributário')['topics'][0]
