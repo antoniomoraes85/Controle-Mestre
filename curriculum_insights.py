@@ -91,7 +91,7 @@ def report(c):
         e=None
         if pdf['topic'] and pdf['subject']:
             e=add(pdf['subject'],pdf['topic'],'PDF catalogado',lesson=pdf['lesson'])
-        if e is None and pdf['subject'] and pdf['lesson']:
+        if e is None and pdf['subject'] and pdf['lesson'] and pdf['material_type'] in ('Teoria','Simplificado','Questões'):
             possible=by_lesson.get((norm(pdf['subject']),norm(pdf['lesson'])),[])
             if len(possible)==1:e=possible[0]
         doc={'id':pdf['id'],'name':pdf['file_name'],'type':pdf['material_type']}
