@@ -28,7 +28,7 @@ import uuid
 import zipfile
 
 REPO = "antoniomoraes85/Controle-Mestre"
-REVISION = "4b252fd8701a709437e390b89236303c8b6aee18"
+REVISION = "555bfc71d53df7509bcd505dc3da4f7f4225f810"
 DEFAULT_BRANCH = "feat/usabilidade-catalogo-ciclos-v086"
 ARCHIVE_URL = f"https://api.github.com/repos/{REPO}/zipball/{REVISION}"
 
