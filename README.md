@@ -2,6 +2,8 @@
 
 Plataforma de planejamento e controle inteligente de estudos.
 
+> **Branch de estabilização (uso diário RS + SC/TI):** o objetivo é conservar apenas as rotinas essenciais na navegação, preservar o histórico SQLite e suspender recursos complexos. O PR #57 é experimental até passar pela homologação no Windows; não se trata de uma versão já publicada na `main`. Consulte [modo essencial e critérios de aceite](docs/MODO_ESSENCIAL_SEFAZ_RS_SC_TI.md).
+
 ## Referência histórica
 
 O projeto retoma a plataforma anterior apresentada pelo canal **Atrator Concursos** em 18/09/2023: [PLATAFORMA CONTROLE MESTRE](https://youtu.be/NAwtZ3KIxao). A descrição pública apresenta planejamento semanal, adaptação à rotina, metas diárias, estudos guiados, revisões, simulados, redações, desempenho por tópico e apostilas de apoio. O vídeo foi identificado por seus metadados; não houve auditoria visual de todas as telas.
