@@ -21,15 +21,25 @@ ROOT = Path(__file__).resolve().parent
 
 
 def _default_db_path() -> Path:
+    """Uma instalação não pode trocar silenciosamente o histórico por pasta nova.
+
+    Ordem: caminho explícito > banco persistente Windows já existente >
+    banco legado local já existente > destino persistente Windows >
+    destino legado (Linux/macOS). Nunca move nem apaga arquivos.
+    """
     env_db = os.environ.get('CONTROLE_MESTRE_DB')
     if env_db:
-        return Path(env_db)
+        return Path(env_db).expanduser()
+    legacy = ROOT / 'dados' / 'controle_mestre.db'
     local_appdata = os.environ.get('LOCALAPPDATA')
     if local_appdata:
-        std = Path(local_appdata) / 'ControleMestre' / 'dados' / 'controle_mestre.db'
-        if std.is_file() or (Path(local_appdata) / 'ControleMestre').is_dir():
-            return std
-    return ROOT / 'dados' / 'controle_mestre.db'
+        persistent = Path(local_appdata) / 'ControleMestre' / 'dados' / 'controle_mestre.db'
+        if persistent.is_file():
+            return persistent
+        if legacy.is_file():
+            return legacy
+        return persistent
+    return legacy
 
 
 DB_PATH = _default_db_path()
