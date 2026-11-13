@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import closing
 import os
 import sqlite3
 import sys
@@ -74,7 +75,7 @@ class EssentialDailyHTTPTests(unittest.TestCase):
         self.original_db = core.DB_PATH
         core.DB_PATH = Path(self.temp.name) / "daily.sqlite"
         self.addCleanup(setattr, core, "DB_PATH", self.original_db)
-        with core.connect():
+        with closing(core.connect()):
             pass
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), AppHandler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -124,7 +125,7 @@ class EssentialDailyHTTPTests(unittest.TestCase):
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0]["total"], 10)
         # Every endpoint uses a new SQLite connection. Also reopen independently.
-        with core.connect() as conn:
+        with closing(core.connect()) as conn:
             self.assertEqual(
                 conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0], 1)
             self.assertEqual(
